@@ -1,10 +1,15 @@
 //Initiaze canvas and canvas dimensions
 const width = document.body.clientWidth;
-const height = window.innerHeight - 20;
-const canvas = document.getElementById('canvas');
+const height = 0.9 * (window.innerHeight - 25);
+const statusHeight = 0.1 * (window.innerHeight - 25);
+let canvas = document.getElementById('canvas');
 const c = canvas.getContext('2d');
 canvas.setAttribute('width', width);
 canvas.setAttribute('height', height);
+canvas = document.getElementById('canvas-statusbar');
+const c2 = canvas.getContext('2d');
+canvas.setAttribute('width', width);
+canvas.setAttribute('height', statusHeight);
 
 //Initialize level-independent variables
 let keysPressed = {};
@@ -59,8 +64,9 @@ function initializeLevel(e) {
         enemyFill = 'red';
         play = true;
 
-        ammoInterval = setInterval(() => ammo++, 2000)
+        ammoInterval = setInterval(() => {ammo++; renderStatus()}, 2000)
 
+        renderStatus();
         render();
     }
 }
@@ -70,6 +76,7 @@ function keyDown(e) {
     if (e.key === ' ' && ammo > 0) {
         shipBullets.push([shipX, height - 50]);
         ammo--;
+        renderStatus();
         return;
     }
     keysPressed[e.key] =  true;
@@ -98,6 +105,7 @@ function checkHits() {
             shipLives -= 1;
             shipFill = 'yellow';
             setTimeout(() => shipFill = 'blue', 1000);
+            renderStatus();
             
             //If all lives are lost, the game is over
             if (shipLives === 0) {
@@ -184,15 +192,6 @@ function drawEnemyBullets() {
     })
 }
 
-//Draw the scores, level and ammo
-function drawScore() {
-    c.font = '48px sans-serif';
-    c.fillText(level, 20, 50);
-    c.fillText(ammo, 20, height - 50);
-    c.fillText(enemyLives, width - 50, 50);
-    c.fillText(shipLives, width - 50, height - 50);
-}
-
 //Game over
 function gameOver() {
     c.font = 'bold 200px sans-serif';
@@ -216,15 +215,60 @@ function render() {
 
     c.fillStyle = 'red'
     drawEnemyBullets();
-
-    c.fillStyle = 'white'
-    drawScore();
   
     if (play) {
         requestAnimationFrame(render);
     }
  
 }
+
+function renderStatus() {
+    c2.clearRect (0, 0, width, statusHeight);
+
+    //Draw numbers
+    c2.fillStyle = 'white';
+    c2.font = '48px sans-serif';
+    c2.fillText(level, 60, statusHeight/ 1.5);
+    c2.fillText(ammo, width / 2 + 10, statusHeight / 1.5);
+    c2.fillText(shipLives, width - 55, statusHeight / 1.5);
+
+    //Draw world
+    c2.beginPath();
+    c2.moveTo(25, statusHeight / 1.5);
+    c2.arc(30, 35, 25, 0, 2 * Math.PI, true);
+    let linGrad = c2.createLinearGradient(5, 35, 55, 35);
+    linGrad.addColorStop(0, 'brown');
+    linGrad.addColorStop(1, 'green');
+    c2.fillStyle = linGrad;
+    c2.fill();
+    
+    //Draw bullet
+    c2.beginPath();
+    c2.moveTo(width / 2 - 20, 60);
+    c2.lineTo(width / 2 - 20, 30);
+    c2.lineTo(width / 2 - 10, 10);
+    c2.lineTo(width / 2, 30);
+    c2.lineTo(width / 2, 60);
+    linGrad = c2.createLinearGradient(width / 2 - 20, 35, width / 2, 35);
+    linGrad.addColorStop(0, 'blue');
+    linGrad.addColorStop(1, 'darkblue');
+    c2.fillStyle = linGrad;
+    c2.fill();
+
+    //Draw heart
+    c2.beginPath();
+    c2.moveTo(width - 75, 40);
+    c2.lineTo(width - 90, 60);
+    c2.lineTo(width - 105, 40);
+    c2.bezierCurveTo(width - 130, 0, width - 100, 0, width - 90, 25);
+    c2.bezierCurveTo(width - 80, 0, width - 50, 0, width - 75, 40);
+    linGrad = c2.createLinearGradient(width - 130, 40, width - 75, 40);
+    linGrad.addColorStop(0, 'red');
+    linGrad.addColorStop(1, 'darkred');
+    c2.fillStyle = linGrad;
+    c2.fill();
+}
+
 
 window.addEventListener('keydown', keyDown);
 window.addEventListener('keyup', keyUp);
