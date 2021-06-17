@@ -8,8 +8,8 @@ canvas.setAttribute('height', height);
 
 //Initialize level-independent variables
 let keysPressed = {};
-let shipLives = 3;
-let level = 1;
+let shipLives = 2;
+let level = 0;
 let difficulty = [[4, 0.99], [7, 0.96], [10, 0.93], [13, 0.90], [16, 0.87], [19, 0.84]];
 
 //Declare level-dependent variables
@@ -21,25 +21,55 @@ let enemyBullets;
 let enemyLives;
 let shipFill;
 let enemyFill;
+let ammo;
 let play;
+let ammoInterval;
+
+//Prepares for the next level
+function nextLevel() {
+
+    if (ammoInterval) clearInterval(ammoInterval);
+
+    shipLives++;
+    level++;
+    ammo = 10;
+    c.fillStyle = 'white';
+    c.strokeStyle = 'white'
+    c.font = 'bold 100px sans-serif';
+    c.strokeRect(525, height / 2 - 125, 500, 300)
+    c.fillText('Level ' + level, 600, height / 2);
+    c.font = 'bold 40px sans-serif';
+    c.fillText('Hit enter to continue', 570, height / 2 + 100  );
+    window.addEventListener('keydown', initializeLevel);
+}
 
 //Initialize level-dependent variables
-function initializeLevel() {
-    shipX = width / 2;
-    enemyX = 50 + Math.floor(Math.random() * width - 50);
-    enemyTargetX = 50 + Math.floor(Math.random() * width - 50);
-    shipBullets = [];
-    enemyBullets = [];
-    enemyLives = 3;
-    shipFill = 'blue';
-    enemyFill = 'red';
-    play = true;
+function initializeLevel(e) {
+
+    if (e.key === 'Enter') {
+        window.removeEventListener('keydown', initializeLevel);
+
+        shipX = width / 2;
+        enemyX = 50 + Math.floor(Math.random() * width - 50);
+        enemyTargetX = 50 + Math.floor(Math.random() * width - 50);
+        shipBullets = [];
+        enemyBullets = [];
+        enemyLives = 3;
+        shipFill = 'blue';
+        enemyFill = 'red';
+        play = true;
+
+        ammoInterval = setInterval(() => ammo++, 2000)
+
+        render();
+    }
 }
 
 //Keep track of which keys are currently pressed. Except the space key, which needs to be pressed repeatedly
 function keyDown(e) {
-    if (e.key === ' ') {
+    if (e.key === ' ' && ammo > 0) {
         shipBullets.push([shipX, height - 50]);
+        ammo--;
         return;
     }
     keysPressed[e.key] =  true;
@@ -88,9 +118,8 @@ function checkHits() {
 
             //If all lives are lost, proceed to next level
             if (enemyLives === 0) {
-                shipLives++;
-                level++;
-                initializeLevel();
+                play = false;
+                nextLevel();
             }
         }
     }
@@ -155,10 +184,11 @@ function drawEnemyBullets() {
     })
 }
 
-//Draw the scores and level
+//Draw the scores, level and ammo
 function drawScore() {
     c.font = '48px sans-serif';
     c.fillText(level, 20, 50);
+    c.fillText(ammo, 20, height - 50);
     c.fillText(enemyLives, width - 50, 50);
     c.fillText(shipLives, width - 50, height - 50);
 }
@@ -196,9 +226,7 @@ function render() {
  
 }
 
-initializeLevel();
-
-render();
-
 window.addEventListener('keydown', keyDown);
 window.addEventListener('keyup', keyUp);
+
+nextLevel();
