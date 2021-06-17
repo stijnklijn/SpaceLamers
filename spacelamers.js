@@ -15,7 +15,7 @@ canvas.setAttribute('height', statusHeight);
 let keysPressed = {};
 let shipLives = 2;
 let level = 0;
-let difficulty = [[4, 0.99], [7, 0.96], [10, 0.93], [13, 0.90], [16, 0.87], [19, 0.84]];
+let difficulty = [[1, 0.99], [2, 0.96], [3, 0.93], [4, 0.90], [5, 0.87], [6, 0.84]];
 
 //Declare level-dependent variables
 let shipX;
@@ -149,18 +149,29 @@ function drawShipBullets() {
 
     //Draw the remaining bullets
     shipBullets.forEach(bullet => {
-        c.fillRect(bullet[0] - 5, bullet[1] - 10, 10, 20);
+        c.beginPath();
+        c.moveTo(bullet[0], bullet[1] - 10);
+        c.lineTo(bullet[0] + 5, bullet[1]);
+        c.lineTo(bullet[0] + 5, bullet[1] + 10);
+        c.lineTo(bullet[0] - 5, bullet[1] + 10);
+        c.lineTo(bullet[0] - 5, bullet[1]);
+        c.closePath();
+        c.fill();
     })
 }
 
 //Draw the enemy
 function drawEnemy() {
+
+    //Determine how fast enemy will move
+    let moveFactor = Math.ceil(Math.random() * 8);
+
     //Move left if target is not within close range
     if (enemyTargetX + difficulty[level - 1][0] < enemyX ) {
-        enemyX -= difficulty[level - 1][0];
+        enemyX -= moveFactor * difficulty[level - 1][0];
     }
     else if (enemyTargetX - difficulty[level - 1][0] > enemyX) {
-        enemyX += difficulty[level - 1][0];
+        enemyX += moveFactor * difficulty[level - 1][0];
     }
 
     //If target is within close range, randomly assign a new target
@@ -168,8 +179,50 @@ function drawEnemy() {
         enemyTargetX = 50 + Math.floor(Math.random() * width - 50);
     }
 
-    //Draw the enemy
-    c.fillRect(enemyX - 50, 50, 100, 20);
+    //Draw and head
+    c.beginPath();
+    c.arc(enemyX, 50, 25, 0, 2 * Math.PI, true);
+    c.ellipse(enemyX, 75, 50, 15, 0, 0, 2 * Math.PI, true);
+    c.fill();
+
+    //Draw face
+    c.beginPath();
+    c.arc(enemyX, 50, 20, 0, 2 * Math.PI, true);
+    c.fillStyle = 'black';
+    c.fill();
+
+    //Draw left eye
+    c.beginPath();
+    c.arc(enemyX - 7, 50, 3, 0, 2 * Math.PI, true);
+    c.fillStyle = 'red';
+    c.fill();
+
+    //Draw right eye
+    c.beginPath();
+    c.arc(enemyX + 7, 50, 3, 0, 2 * Math.PI, true);
+    c.fill();
+
+    //Draw left eyebrow
+    c.beginPath();
+    c.moveTo(enemyX - 12, 40)
+    c.lineTo(enemyX - 2, 43);
+    c.lineWidth = 2;
+    c.strokeStyle = 'red'
+    c.stroke();
+
+    //Draw right eyebrow
+    c.beginPath();
+    c.moveTo(enemyX + 12, 40)
+    c.lineTo(enemyX + 2, 43);
+    c.stroke();
+
+    //Draw mouth
+    c.beginPath();
+    c.moveTo(enemyX - 10, 60);
+    c.lineTo(enemyX + 10, 60);
+    c.stroke();
+
+
 }
 
 //Draw bullets fired by the enemy
@@ -188,7 +241,14 @@ function drawEnemyBullets() {
 
     //Draw the remaining bullets
     enemyBullets.forEach(bullet => {
-        c.fillRect(bullet[0] - 5, bullet[1] - 10, 10, 20);
+        c.beginPath();
+        c.moveTo(bullet[0], bullet[1] + 10);
+        c.lineTo(bullet[0] - 5, bullet[1]);
+        c.lineTo(bullet[0] - 5, bullet[1] -10);
+        c.lineTo(bullet[0] + 5, bullet[1] - 10);
+        c.lineTo(bullet[0] + 5, bullet[1]);
+        c.closePath();
+        c.fill();
     })
 }
 
