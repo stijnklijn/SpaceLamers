@@ -16,6 +16,8 @@ let keysPressed = {};
 let shipLives = 2;
 let level = 0;
 let difficulty = [[1, 0.99], [2, 0.96], [3, 0.93], [4, 0.90], [5, 0.87], [6, 0.84]];
+let stars = [];
+let planets = [];
 
 //Declare level-dependent variables
 let shipX;
@@ -29,6 +31,15 @@ let enemyFill;
 let ammo;
 let play;
 let ammoInterval;
+
+//Generate initial stars
+function generateStars() {
+    for (let i = 0; i < height; i++) {
+        if (Math.random() > 0.9) {
+            stars.push([Math.floor(Math.random() * width), i, Math.ceil(Math.random() * 3)]);
+        }
+    }
+}
 
 //Prepares for the next level
 function nextLevel() {
@@ -131,6 +142,57 @@ function checkHits() {
             }
         }
     }
+}
+
+
+//Draw the stars
+function drawStars() {
+
+    //Create new star
+    if (Math.random() > 0.9) {
+        stars.push([Math.floor(Math.random() * width), 0, Math.ceil(Math.random() * 3)]);
+    }
+
+    //Move all stars 1 pixel to the south
+    stars = stars.map(star => ([star[0], star[1] + star[2], star[2]]));
+
+    //Filter stars that have left the screen
+    stars = stars.filter(star => star[1] < height)
+
+    //Draw the remaining stars
+    stars.forEach(star => {
+        c.beginPath();
+        c.arc(star[0], star[1], 1, 0, 2 * Math.PI, true);
+        c.fill();
+    })
+}
+
+//Draw the planets
+function drawPlanets() {
+
+    //Create a new planet
+    if (Math.random() > 0.999) {
+        planets.push([Math.floor(Math.random() * width), 0, Math.floor(10 + Math.random() * 15), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.ceil(Math.random() * 3)]);
+    }
+
+    //Move all planets 1 pixel to the south
+    planets = planets.map(planet => ([planet[0], planet[1] + planet[9], planet[2], planet[3], planet[4], planet[5], planet[6], planet[7], planet[8], planet[9]]));
+
+    //Filter stars that have left the screen
+    planets = planets.filter(planet => planet[1] < height)
+
+    //Draw the remaining planets
+    planets.forEach(planet => {
+        c.beginPath();
+        c.moveTo(planet[0], planet[1]);
+        c.arc(planet[0], planet[1], planet[2], 0, 2 * Math.PI, true);
+        let linGrad = c.createLinearGradient(planet[0] + planet[2] * Math.cos(Math.PI), planet[1] + planet[2] * Math.sin(Math.PI), planet[0] + planet[2] * Math.cos(0), planet[1] + planet[2] * Math.sin(0));
+        linGrad.addColorStop(0, `rgb(${planet[3]}, ${planet[4]}, ${planet[5]})`);
+        linGrad.addColorStop(1, `rgb(${planet[6]}, ${planet[7]}, ${planet[8]})`);
+        c.fillStyle = linGrad;
+        c.fill();
+    })
+
 }
 
 //Draw the ship
@@ -266,6 +328,11 @@ function render() {
     checkKeys();
     checkHits();
 
+    c.fillStyle = 'white'
+    drawStars();
+
+    drawPlanets();
+
     c.fillStyle = shipFill;
     drawShip();
 
@@ -331,8 +398,8 @@ function renderStatus() {
     c2.fill();
 }
 
-
 window.addEventListener('keydown', keyDown);
 window.addEventListener('keyup', keyUp);
 
+generateStars();
 nextLevel();
