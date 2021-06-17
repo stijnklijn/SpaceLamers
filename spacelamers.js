@@ -99,7 +99,7 @@ function checkKeys() {
 function checkHits() {
     //Check whether ship is hit by enemy bullet.
     for ([x, y] of enemyBullets) {
-        if (x > shipX - 50 && x < shipX + 50 && y > height - 80 && y < height - 60) {
+        if (x > shipX - 50 && x < shipX + 50 && y > height - 80 && y < height - 70) {
             
             //If so, a life is lost and the ship needs to turn yellow and back blue again.
             shipLives -= 1;
@@ -117,7 +117,7 @@ function checkHits() {
 
     //Check whether enemy is hit by ship bullet
     for ([x, y] of shipBullets) {
-        if (x > enemyX - 50 && x < enemyX + 50 && y < 100 && y > 80) {
+        if (x > enemyX - 50 && x < enemyX + 50 && y < 100 && y > 90) {
 
             //If so, an enemy life is lost and the ship needs to turn yellow and back red again.
             enemyLives -= 1;
@@ -194,6 +194,8 @@ function drawEnemyBullets() {
 
 //Game over
 function gameOver() {
+    clearInterval(ammoInterval);
+    c.fillStyle = 'white'
     c.font = 'bold 200px sans-serif';
     c.fillText('GAME OVER', 125, height / 2);
 }
