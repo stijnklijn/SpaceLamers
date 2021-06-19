@@ -15,7 +15,7 @@ canvas.setAttribute('height', statusHeight);
 let keysPressed = {};
 let shipLives = 2;
 let level = 0;
-let difficulty = [[1, 0.99], [2, 0.96], [3, 0.93], [4, 0.90], [5, 0.87], [6, 0.84]];
+let difficulty = [[1, 0.99], [2, 0.98], [3, 0.97], [4, 0.96], [5, 0.94], [6, 0.90]];
 let stars = [];
 let planets = [];
 
@@ -197,8 +197,32 @@ function drawPlanets() {
 
 //Draw the ship
 function drawShip() {
-    c.fillRect(shipX - 50, height - 50, 100, 20);
-}
+
+    //Draw front
+    c.beginPath();
+    c.moveTo(shipX, height - 65);
+    c.lineTo(shipX - 20, height - 45);
+    c.lineTo(shipX + 20, height - 45);
+    c.fill();
+
+    //Draw the left wing
+    c.beginPath();
+    c.moveTo(shipX - 20, height - 45);
+    c.lineTo(shipX, height - 25);
+    c.lineTo(shipX - 20, height - 5);
+    c.lineTo(shipX - 40, height - 25);
+    c.fill();
+ 
+    //Draw right wing
+    c.beginPath();
+    c.moveTo(shipX + 20, height - 45);
+    c.lineTo(shipX + 40, height - 25);
+    c.lineTo(shipX + 20, height - 5);
+    c.lineTo(shipX, height - 25);
+    c.fill();
+
+    
+ }
 
 //Draw bullets fired by the ship
 function drawShipBullets() {
@@ -241,7 +265,7 @@ function drawEnemy() {
         enemyTargetX = 50 + Math.floor(Math.random() * width - 50);
     }
 
-    //Draw and head
+    //Draw body and head
     c.beginPath();
     c.arc(enemyX, 50, 25, 0, 2 * Math.PI, true);
     c.ellipse(enemyX, 75, 50, 15, 0, 0, 2 * Math.PI, true);
