@@ -15,9 +15,15 @@ canvas.setAttribute('height', statusHeight);
 let keysPressed = {};
 let shipLives = 2;
 let level = 0;
-let difficulty = [[1, 0.99], [2, 0.98], [3, 0.97], [4, 0.96], [5, 0.94], [6, 0.90]];
 let stars = [];
 let planets = [];
+
+//Difficulty for each level:
+//-Enemy movement pixels per iteration,
+//-Chances of enemy not shooting when not above ship,
+//-Chances of enemy not shotting when above ship,
+//-Chances of not setting ship as new location
+let difficulty = [[2, 0.999, 0.99, 0.05], [4, 0.995, 0.98, 0.03], [6, 0.99, 0.95, 0.01], [8, 0.98, 0.9, 0.005], [10, 0.97, 0,85, 0.003], [12, 0.95, 0.8, 0.002], [15.5, 0.9, 0.75, 0.001]];
 
 //Declare level-dependent variables
 let shipX;
@@ -249,21 +255,27 @@ function drawShipBullets() {
 //Draw the enemy
 function drawEnemy() {
 
-    //Determine how fast enemy will move
-    let moveFactor = Math.ceil(Math.random() * 8);
-
-    //Move left if target is not within close range
+      //Move left if target is not within close range
     if (enemyTargetX + difficulty[level - 1][0] < enemyX ) {
-        enemyX -= moveFactor * difficulty[level - 1][0];
+        enemyX -= difficulty[level - 1][0];
     }
     else if (enemyTargetX - difficulty[level - 1][0] > enemyX) {
-        enemyX += moveFactor * difficulty[level - 1][0];
+        enemyX += difficulty[level - 1][0];
     }
 
     //If target is within close range, randomly assign a new target
     else {
-        enemyTargetX = 50 + Math.floor(Math.random() * width - 50);
-    }
+
+        //If a random threshold is exceeded, target the ship
+        if (Math.random() > difficulty[level - 1][3]) {
+            enemyTargetX = shipX;
+        }
+
+        //Otherwise target a random location
+        else {
+            enemyTargetX = 50 + Math.floor(Math.random() * width - 50);
+        }
+     }
 
     //Draw body and head
     c.beginPath();
@@ -314,8 +326,13 @@ function drawEnemy() {
 //Draw bullets fired by the enemy
 function drawEnemyBullets() {
 
-    //Introduce a new bullet if random threshold is exceeded
-    if (Math.random() > difficulty[level - 1][1]) {
+    //If enemy is above ship, introduce a new bullet if random threshold is exceeded
+    if (enemyX - shipX < 20 && enemyX - shipX > -20 && Math.random() > difficulty[level - 1][2]) {
+        enemyBullets.push([enemyX, 50])
+    }
+
+    //Otherwise, introduce a new bullet if another (less likely) threshold is exceeded
+    else if (Math.random() > difficulty[level - 1][1]) {
         enemyBullets.push([enemyX, 50])
     }
 
