@@ -37,8 +37,6 @@ let enemyTargetY;
 let shipBullets;
 let enemyBullets;
 let enemyLives;
-let shipFill;
-let enemyFill;
 let ammo;
 let play;
 let ammoInterval;
@@ -84,8 +82,6 @@ function initializeLevel(e) {
         shipBullets = [];
         enemyBullets = [];
         enemyLives = 3;
-        shipFill = 'blue';
-        enemyFill = 'red';
         play = true;
 
         ammoInterval = setInterval(() => {ammo++; renderStatus()}, 2000)
@@ -97,7 +93,7 @@ function initializeLevel(e) {
 
 //Keep track of which keys are currently pressed. Except the space key, which needs to be pressed repeatedly
 function keyDown(e) {
-    if (e.key === ' ' && ammo > 0) {
+    if (play && e.key === ' ' && ammo > 0) {
         shipBullets.push([shipX, height - 65]);
         ammo--;
         renderStatus();
@@ -127,12 +123,8 @@ function checkHits() {
             
             //If so, a life is lost and the ship needs to turn yellow and back blue again.
             shipLives -= 1;
-            shipFill = 'yellow';
             shipRefractory = true;
-            setTimeout(() => {
-                shipFill = 'blue';
-                shipRefractory = false;
-            }, 1000)
+            setTimeout(() => shipRefractory = false, 1000);
             renderStatus();
             
             //If all lives are lost, the game is over
@@ -150,12 +142,8 @@ function checkHits() {
 
             //If so, an enemy life is lost and the ship needs to turn yellow and back red again.
             enemyLives -= 1;
-            enemyFill = 'yellow';
             enemyRefractory = true;
-            setTimeout(() => {
-                enemyFill = 'red';
-                enemyRefractory = false;
-            }, 1000)
+            setTimeout(() => enemyRefractory = false, 1000);
             
 
             //If all lives are lost, proceed to next level
@@ -198,14 +186,14 @@ function drawPlanets() {
 
     //Create a new planet
     if (Math.random() > 0.999) {
-        planets.push([Math.floor(Math.random() * width), 0, Math.floor(10 + Math.random() * 15), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.ceil(Math.random() * 3)]);
+        planets.push([Math.floor(Math.random() * width), -25, Math.floor(10 + Math.random() * 15), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.ceil(Math.random() * 3)]);
     }
 
     //Move all planets 1 pixel to the south
     planets = planets.map(planet => ([planet[0], planet[1] + planet[9], planet[2], planet[3], planet[4], planet[5], planet[6], planet[7], planet[8], planet[9]]));
 
     //Filter stars that have left the screen
-    planets = planets.filter(planet => planet[1] < height)
+    planets = planets.filter(planet => planet[1] < height + 25)
 
     //Draw the remaining planets
     planets.forEach(planet => {
@@ -339,7 +327,7 @@ function drawEnemy() {
     c.moveTo(enemyX - 12, enemyY - 10)
     c.lineTo(enemyX - 2, enemyY - 7);
     c.lineWidth = 2;
-    c.strokeStyle = 'red'
+    c.strokeStyle = 'red';
     c.stroke();
 
     //Draw right eyebrow
@@ -417,14 +405,14 @@ function explode(enemy) {
         drawPlanets();
 
         if (enemy) {
-            c.fillStyle = shipFill;
+            c.fillStyle = 'blue';
             drawShip();
             drawShipBullets();
         }
 
         else {
 
-            c.fillStyle = enemyFill;
+            c.fillStyle = 'red';
             drawEnemy();
             drawEnemyBullets();
         }
@@ -456,6 +444,13 @@ function gameOver() {
     c.fillStyle = 'white'
     c.font = 'bold 200px sans-serif';
     c.fillText('GAME OVER', 125, height / 2);
+    c.font = 'bold 40px sans-serif';
+    c.fillText('Hit enter to play again', 550, height / 2 + 100  );
+    shipLives = 3;
+    ammo = 10;
+    level = 1;
+    window.addEventListener('keydown', initializeLevel);
+
 }
 
 //Clears the canvas and renders all elements
@@ -469,13 +464,13 @@ function render() {
 
     drawPlanets();
 
-    c.fillStyle = shipFill;
+    c.fillStyle = shipRefractory ? `rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})` : 'blue'
     drawShip();
 
     c.fillStyle = 'blue';
     drawShipBullets();
 
-    c.fillStyle = enemyFill;
+    c.fillStyle = enemyRefractory ? `rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})` : 'red'
     drawEnemy();
 
     c.fillStyle = 'red'
