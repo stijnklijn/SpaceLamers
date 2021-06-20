@@ -83,7 +83,7 @@ function initializeLevel(e) {
         enemyTargetY = 50;
         shipBullets = [];
         enemyBullets = [];
-        enemyLives = 3;
+        enemyLives = 1;
         shipFill = 'blue';
         enemyFill = 'red';
         play = true;
@@ -160,7 +160,10 @@ function checkHits() {
             //If all lives are lost, proceed to next level
             if (enemyLives === 0) {
                 play = false;
-                nextLevel();
+                explodeEnemy();
+                setTimeout(() => nextLevel(), 2000);
+                
+ 
             }
         }
     }
@@ -383,6 +386,67 @@ function drawEnemyBullets() {
         c.closePath();
         c.fill();
     })
+}
+
+function explodeEnemy() {
+
+    let frames = 0;
+    let fragments = [];
+
+    for (let i = 0; i < 100; i++) {
+
+
+        let r = 5 + Math.random() * 30;
+        let theta1 = Math.random() * 2 * Math.PI;
+        let theta2 = Math.random() * 2 * Math.PI;
+        let theta3 = Math.random() * 2 * Math.PI;
+        let dx = Math.random() * 20 - 10;
+        let dy = Math.random() * 20 - 10;
+        let dr = Math.random() * 20 - 10;
+        let ds = Math.random() / 10;
+
+
+        fragments.push([r, theta1, theta2, theta3, dx, dy, dr, ds])
+    
+    }
+
+ 
+
+
+    explode();
+
+    function explode() {
+
+        c.clearRect(0, 0, width, height);
+
+        c.fillStyle = 'white';
+        drawStars();
+        drawPlanets();
+
+        c.fillStyle = shipFill;
+        drawShip();
+        drawShipBullets;
+
+        c.fillStyle = 'red';
+
+        for (fragment of fragments) {
+            let [r, theta1, theta2, theta3, dx, dy, dr, ds] = fragment;
+            c.beginPath();
+            c.moveTo(enemyX - 50 + frames * ds * r * Math.cos(theta1 + frames * dr * (Math.PI / 180)) + frames * dx, enemyY - 25 + frames * ds * r * Math.sin(theta1 + frames * dr * (Math.PI / 180)) + frames * dy);
+            c.lineTo(enemyX - 50 + frames * ds * r * Math.cos(theta2 + frames * dr * (Math.PI / 180)) + frames * dx, enemyY - 25 + frames * ds * r * Math.sin(theta2 + frames * dr * (Math.PI / 180)) + frames * dy);
+            c.lineTo(enemyX - 50 + frames * ds * r * Math.cos(theta3 + frames * dr * (Math.PI / 180)) + frames * dx, enemyY - 25 + frames * ds * r * Math.sin(theta3 + frames * dr * (Math.PI / 180)) + frames * dy);
+           
+            c.closePath();
+            c.fill();
+        }
+
+        frames++;
+
+        if (frames < 100) {
+            requestAnimationFrame(explode);
+        }   
+    }
+ 
 }
 
 //Game over
