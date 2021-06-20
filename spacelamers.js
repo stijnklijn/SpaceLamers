@@ -14,21 +14,26 @@ canvas.setAttribute('height', statusHeight);
 //Initialize level-independent variables
 let keysPressed = {};
 let shipLives = 2;
+let shipRefractory = false;
+let enemyRefractory = false;
 let level = 0;
 let stars = [];
 let planets = [];
 
 //Difficulty for each level:
-//-Enemy movement pixels per iteration,
+//-Enemy movement speed in pixels per animationframe,
 //-Chances of enemy not shooting when not above ship,
-//-Chances of enemy not shotting when above ship,
+//-Chances of enemy not shooting when above ship,
 //-Chances of not setting ship as new location
-let difficulty = [[2, 0.999, 0.99, 0.05], [4, 0.995, 0.98, 0.03], [6, 0.99, 0.95, 0.01], [8, 0.98, 0.9, 0.005], [10, 0.97, 0,85, 0.003], [12, 0.95, 0.8, 0.002], [15.5, 0.9, 0.75, 0.001]];
+//-Chances of enemy not coming down
+let difficulty = [[2, 0.999, 0.99, 0.05, 1], [4, 0.995, 0.98, 0.03, 1], [6, 0.99, 0.95, 0.01, 0.999], [8, 0.98, 0.9, 0.005, 0.995], [10, 0.97, 0,85, 0.003, 0.99], [12, 0.95, 0.8, 0.002, 0.98], [15.5, 0.9, 0.75, 0.001, 0.95]];
 
 //Declare level-dependent variables
 let shipX;
 let enemyX;
+let enemyY;
 let enemyTargetX;
+let enemyTargetY;
 let shipBullets;
 let enemyBullets;
 let enemyLives;
@@ -73,7 +78,9 @@ function initializeLevel(e) {
 
         shipX = width / 2;
         enemyX = 50 + Math.floor(Math.random() * width - 50);
+        enemyY = 50;
         enemyTargetX = 50 + Math.floor(Math.random() * width - 50);
+        enemyTargetY = 50;
         shipBullets = [];
         enemyBullets = [];
         enemyLives = 3;
@@ -91,7 +98,7 @@ function initializeLevel(e) {
 //Keep track of which keys are currently pressed. Except the space key, which needs to be pressed repeatedly
 function keyDown(e) {
     if (e.key === ' ' && ammo > 0) {
-        shipBullets.push([shipX, height - 50]);
+        shipBullets.push([shipX, height - 65]);
         ammo--;
         renderStatus();
         return;
@@ -116,12 +123,16 @@ function checkKeys() {
 function checkHits() {
     //Check whether ship is hit by enemy bullet.
     for ([x, y] of enemyBullets) {
-        if (x > shipX - 50 && x < shipX + 50 && y > height - 80 && y < height - 70) {
+        if (!shipRefractory && x > shipX - 40 && x < shipX + 40 && y > height - 65 + Math.abs(x - shipX) && y < height - 5) {
             
             //If so, a life is lost and the ship needs to turn yellow and back blue again.
             shipLives -= 1;
             shipFill = 'yellow';
-            setTimeout(() => shipFill = 'blue', 1000);
+            shipRefractory = true;
+            setTimeout(() => {
+                shipFill = 'blue';
+                shipRefractory = false;
+            }, 1000)
             renderStatus();
             
             //If all lives are lost, the game is over
@@ -134,12 +145,17 @@ function checkHits() {
 
     //Check whether enemy is hit by ship bullet
     for ([x, y] of shipBullets) {
-        if (x > enemyX - 50 && x < enemyX + 50 && y < 100 && y > 90) {
+        if (!enemyRefractory && x > enemyX - 50 && x < enemyX + 50 && y < enemyY + 40 && y > enemyY + 10) {
 
             //If so, an enemy life is lost and the ship needs to turn yellow and back red again.
             enemyLives -= 1;
             enemyFill = 'yellow';
-            setTimeout(() => enemyFill = 'red', 1000);
+            enemyRefractory = true;
+            setTimeout(() => {
+                enemyFill = 'red';
+                enemyRefractory = false;
+            }, 1000)
+            
 
             //If all lives are lost, proceed to next level
             if (enemyLives === 0) {
@@ -242,11 +258,11 @@ function drawShipBullets() {
     //Draw the remaining bullets
     shipBullets.forEach(bullet => {
         c.beginPath();
-        c.moveTo(bullet[0], bullet[1] - 10);
-        c.lineTo(bullet[0] + 5, bullet[1]);
+        c.moveTo(bullet[0], bullet[1]);
         c.lineTo(bullet[0] + 5, bullet[1] + 10);
+        c.lineTo(bullet[0] + 5, bullet[1] + 20);
+        c.lineTo(bullet[0] - 5, bullet[1] + 20);
         c.lineTo(bullet[0] - 5, bullet[1] + 10);
-        c.lineTo(bullet[0] - 5, bullet[1]);
         c.closePath();
         c.fill();
     })
@@ -255,7 +271,7 @@ function drawShipBullets() {
 //Draw the enemy
 function drawEnemy() {
 
-      //Move left if target is not within close range
+    //Move left or right if target is not within close range
     if (enemyTargetX + difficulty[level - 1][0] < enemyX ) {
         enemyX -= difficulty[level - 1][0];
     }
@@ -277,47 +293,61 @@ function drawEnemy() {
         }
      }
 
+     //Move up or down according to target location
+     if (enemyTargetY > enemyY) {
+         enemyY += 5;
+     }
+     else if (enemyTargetY < enemyY) {
+         enemyY -= 5;
+     }
+     else if (enemyTargetY === 400) {
+         enemyTargetY = 50;
+     }
+     else {
+         if (Math.random() > difficulty[level - 1][4]) enemyTargetY = 400;
+     }
+
     //Draw body and head
     c.beginPath();
-    c.arc(enemyX, 50, 25, 0, 2 * Math.PI, true);
-    c.ellipse(enemyX, 75, 50, 15, 0, 0, 2 * Math.PI, true);
+    c.arc(enemyX, enemyY, 25, 0, 2 * Math.PI, true);
+    c.ellipse(enemyX, enemyY + 25, 50, 15, 0, 0, 2 * Math.PI, true);
     c.fill();
 
     //Draw face
     c.beginPath();
-    c.arc(enemyX, 50, 20, 0, 2 * Math.PI, true);
+    c.arc(enemyX, enemyY, 20, 0, 2 * Math.PI, true);
     c.fillStyle = 'black';
     c.fill();
 
     //Draw left eye
     c.beginPath();
-    c.arc(enemyX - 7, 50, 3, 0, 2 * Math.PI, true);
+    c.arc(enemyX - 7, enemyY, 3, 0, 2 * Math.PI, true);
     c.fillStyle = 'red';
     c.fill();
 
     //Draw right eye
     c.beginPath();
-    c.arc(enemyX + 7, 50, 3, 0, 2 * Math.PI, true);
+    c.arc(enemyX + 7, enemyY, 3, 0, 2 * Math.PI, true);
     c.fill();
 
     //Draw left eyebrow
     c.beginPath();
-    c.moveTo(enemyX - 12, 40)
-    c.lineTo(enemyX - 2, 43);
+    c.moveTo(enemyX - 12, enemyY - 10)
+    c.lineTo(enemyX - 2, enemyY - 7);
     c.lineWidth = 2;
     c.strokeStyle = 'red'
     c.stroke();
 
     //Draw right eyebrow
     c.beginPath();
-    c.moveTo(enemyX + 12, 40)
-    c.lineTo(enemyX + 2, 43);
+    c.moveTo(enemyX + 12, enemyY - 10)
+    c.lineTo(enemyX + 2, enemyY - 7);
     c.stroke();
 
     //Draw mouth
     c.beginPath();
-    c.moveTo(enemyX - 10, 60);
-    c.lineTo(enemyX + 10, 60);
+    c.moveTo(enemyX - 10, enemyY + 10);
+    c.lineTo(enemyX + 10, enemyY + 10);
     c.stroke();
 
 
@@ -328,12 +358,12 @@ function drawEnemyBullets() {
 
     //If enemy is above ship, introduce a new bullet if random threshold is exceeded
     if (enemyX - shipX < 20 && enemyX - shipX > -20 && Math.random() > difficulty[level - 1][2]) {
-        enemyBullets.push([enemyX, 50])
+        enemyBullets.push([enemyX, enemyY + 50])
     }
 
     //Otherwise, introduce a new bullet if another (less likely) threshold is exceeded
     else if (Math.random() > difficulty[level - 1][1]) {
-        enemyBullets.push([enemyX, 50])
+        enemyBullets.push([enemyX, enemyY + 50])
     }
 
     //Move all bullets 10 pixels to the south
@@ -345,11 +375,11 @@ function drawEnemyBullets() {
     //Draw the remaining bullets
     enemyBullets.forEach(bullet => {
         c.beginPath();
-        c.moveTo(bullet[0], bullet[1] + 10);
-        c.lineTo(bullet[0] - 5, bullet[1]);
-        c.lineTo(bullet[0] - 5, bullet[1] -10);
+        c.moveTo(bullet[0], bullet[1]);
+        c.lineTo(bullet[0] - 5, bullet[1] - 10);
+        c.lineTo(bullet[0] - 5, bullet[1] -20);
+        c.lineTo(bullet[0] + 5, bullet[1] - 20);
         c.lineTo(bullet[0] + 5, bullet[1] - 10);
-        c.lineTo(bullet[0] + 5, bullet[1]);
         c.closePath();
         c.fill();
     })
