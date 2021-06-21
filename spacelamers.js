@@ -11,41 +11,55 @@ const c2 = canvas.getContext('2d');
 canvas.setAttribute('width', width);
 canvas.setAttribute('height', statusHeight);
 
-//Initialize level-independent variables
-let keysPressed = {};
-let shipLives = 2;
-let shipRefractory = false;
-let enemyRefractory = false;
-let level = 0;
+/*
+Difficulty variables for each level. Enemy speed in pixels per frame and chances per frame of enemy shooting space (when
+ship not underneath), shooting at ship directly (when ship underneath), moving toward the ship and moving downward.
+*/
+const level = [
+    {speed: 2, shootSpace: 0.001, shootShip: 0.01, moveToShip: 0.01, moveDown: 0},
+    {speed: 4, shootSpace: 0.005, shootShip: 0.02, moveToShip: 0.02, moveDown: 0},
+    {speed: 6, shootSpace: 0.01, shootShip: 0.05, moveToShip: 0.05, moveDown: 0.001},
+    {speed: 8, shootSpace: 0.02, shootShip: 0.1, moveToShip: 0.1, moveDown: 0.01},
+    {speed: 10, shootSpace: 0.03, shootShip: 0.15, moveToShip: 0.2, moveDown: 0.02},
+    {speed: 12, shootSpace: 0.05, shootShip: 0.2, moveToShip: 0.3, moveDown: 0.05},
+    {speed: 15, shootSpace: 0.1, shootShip: 0.25, moveToShip: 0.5, moveDown: 0.1},
+];
+
+//Initialize object for remembering keys pressed
+const keysPressed = {};
+
+//Initialize arrays for holding stars and planets
 let stars = [];
 let planets = [];
 
-//Difficulty for each level:
-//-Enemy movement speed in pixels per animationframe,
-//-Chances of enemy not shooting when not above ship,
-//-Chances of enemy not shooting when above ship,
-//-Chances of not setting ship as new location
-//-Chances of enemy not coming down
-let difficulty = [[2, 0.999, 0.99, 0.05, 1], [4, 0.995, 0.98, 0.03, 1], [6, 0.99, 0.95, 0.01, 0.999], [8, 0.98, 0.9, 0.005, 0.995], [10, 0.97, 0,85, 0.003, 0.99], [12, 0.95, 0.8, 0.002, 0.98], [15.5, 0.9, 0.75, 0.001, 0.95]];
+//Initialize level-independent variables
+let currentLevel = 0;
+let shipLives = 200;
+let shipRefractory = false;
+let enemyRefractory = false;
 
 //Declare level-dependent variables
 let shipX;
+let shipBullets;
+let shipAmmo;
+let shipAmmoInterval;
 let enemyX;
 let enemyY;
 let enemyTargetX;
 let enemyTargetY;
-let shipBullets;
 let enemyBullets;
 let enemyLives;
-let ammo;
 let play;
-let ammoInterval;
 
 //Generate initial stars
 function generateStars() {
     for (let i = 0; i < height; i++) {
-        if (Math.random() > 0.9) {
-            stars.push([Math.floor(Math.random() * width), i, Math.ceil(Math.random() * 3)]);
+        if (Math.random() < 0.1) {
+            stars.push({
+                x: Math.floor(Math.random() * width),
+                y: i,
+                dy: Math.ceil(Math.random() * 3)
+            })
         }
     }
 }
@@ -53,16 +67,16 @@ function generateStars() {
 //Prepares for the next level
 function nextLevel() {
 
-    if (ammoInterval) clearInterval(ammoInterval);
+    if (shipAmmoInterval) clearInterval(shipAmmoInterval);
 
     shipLives++;
-    level++;
-    ammo = 10;
+    currentLevel++;
+    shipAmmo = 10;
     c.fillStyle = 'white';
     c.strokeStyle = 'white'
     c.font = 'bold 100px sans-serif';
     c.strokeRect(525, height / 2 - 125, 500, 300)
-    c.fillText('Level ' + level, 600, height / 2);
+    c.fillText('Level ' + currentLevel, 600, height / 2);
     c.font = 'bold 40px sans-serif';
     c.fillText('Hit enter to continue', 570, height / 2 + 100  );
     window.addEventListener('keydown', initializeLevel);
@@ -81,10 +95,10 @@ function initializeLevel(e) {
         enemyTargetY = 50;
         shipBullets = [];
         enemyBullets = [];
-        enemyLives = 3;
+        enemyLives = 1;
         play = true;
 
-        ammoInterval = setInterval(() => {ammo++; renderStatus()}, 2000)
+        shipAmmoInterval = setInterval(() => {shipAmmo++; renderStatus()}, 2000)
 
         renderStatus();
         render();
@@ -93,9 +107,9 @@ function initializeLevel(e) {
 
 //Keep track of which keys are currently pressed. Except the space key, which needs to be pressed repeatedly
 function keyDown(e) {
-    if (play && e.key === ' ' && ammo > 0) {
+    if (play && e.key === ' ' && shipAmmo > 0) {
         shipBullets.push([shipX, height - 65]);
-        ammo--;
+        shipAmmo--;
         renderStatus();
         return;
     }
@@ -163,20 +177,27 @@ function checkHits() {
 function drawStars() {
 
     //Create new star
-    if (Math.random() > 0.9) {
-        stars.push([Math.floor(Math.random() * width), 0, Math.ceil(Math.random() * 3)]);
+    if (Math.random() < 0.1) {
+        stars.push({
+            x: Math.floor(Math.random() * width),
+            y: 0,
+            dy: Math.ceil(Math.random() * 3)
+        })
     }
 
     //Move all stars 1 pixel to the south
-    stars = stars.map(star => ([star[0], star[1] + star[2], star[2]]));
+    stars = stars.map(star => ({
+        x: star.x,
+        y: star.y + star.dy,
+        dy: star.dy}));
 
     //Filter stars that have left the screen
-    stars = stars.filter(star => star[1] < height)
+    stars = stars.filter(star => star.y < height)
 
     //Draw the remaining stars
     stars.forEach(star => {
         c.beginPath();
-        c.arc(star[0], star[1], 1, 0, 2 * Math.PI, true);
+        c.arc(star.x, star.y, 1, 0, 2 * Math.PI, true);
         c.fill();
     })
 }
@@ -185,28 +206,53 @@ function drawStars() {
 function drawPlanets() {
 
     //Create a new planet
-    if (Math.random() > 0.999) {
-        planets.push([Math.floor(Math.random() * width), -25, Math.floor(10 + Math.random() * 15), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.ceil(Math.random() * 3)]);
+    if (Math.random() < 0.001) {
+        planets.push({
+            x: Math.floor(Math.random() * width),
+            y: -25,
+            dy: Math.ceil(Math.random() * 3),
+            r: Math.floor(10 + Math.random() * 15),
+            gradR1: Math.floor(Math.random() * 255),
+            gradG1: Math.floor(Math.random() * 255),
+            gradB1: Math.floor(Math.random() * 255),
+            gradR2: Math.floor(Math.random() * 255),
+            gradG2: Math.floor(Math.random() * 255),
+            gradB2: Math.floor(Math.random() * 255),
+          });
     }
 
     //Move all planets 1 pixel to the south
-    planets = planets.map(planet => ([planet[0], planet[1] + planet[9], planet[2], planet[3], planet[4], planet[5], planet[6], planet[7], planet[8], planet[9]]));
+    planets = planets.map(planet => ({
+        x: planet.x,
+        y: planet.y + planet.dy,
+        dy: planet.dy,
+        r: planet.r,
+        gradR1: planet.gradR1,
+        gradG1: planet.gradG1,
+        gradB1: planet.gradB1,
+        gradR2: planet.gradR2,
+        gradG2: planet.gradG2,
+        gradB2: planet.gradB2,
+        }));
 
-    //Filter stars that have left the screen
-    planets = planets.filter(planet => planet[1] < height + 25)
+    //Filter planets that have left the screen
+    planets = planets.filter(planet => planet.y < height + 25)
 
     //Draw the remaining planets
     planets.forEach(planet => {
         c.beginPath();
-        c.moveTo(planet[0], planet[1]);
-        c.arc(planet[0], planet[1], planet[2], 0, 2 * Math.PI, true);
-        let linGrad = c.createLinearGradient(planet[0] + planet[2] * Math.cos(Math.PI), planet[1] + planet[2] * Math.sin(Math.PI), planet[0] + planet[2] * Math.cos(0), planet[1] + planet[2] * Math.sin(0));
-        linGrad.addColorStop(0, `rgb(${planet[3]}, ${planet[4]}, ${planet[5]})`);
-        linGrad.addColorStop(1, `rgb(${planet[6]}, ${planet[7]}, ${planet[8]})`);
+        c.moveTo(planet.x, planet.y);
+        c.arc(planet.x, planet.y, planet.r, 0, 2 * Math.PI, true);
+        let linGrad = c.createLinearGradient(
+            planet.x + planet.r * Math.cos(Math.PI),
+            planet.y + planet.r * Math.sin(Math.PI),
+            planet.x + planet.r * Math.cos(0),
+            planet.y + planet.r * Math.sin(0));
+        linGrad.addColorStop(0, `rgb(${planet.gradR1}, ${planet.gradG1}, ${planet.gradB1})`);
+        linGrad.addColorStop(1, `rgb(${planet.gradR2}, ${planet.gradG2}, ${planet.gradB2})`);
         c.fillStyle = linGrad;
         c.fill();
     })
-
 }
 
 //Draw the ship
@@ -264,24 +310,24 @@ function drawShipBullets() {
 function drawEnemy() {
 
     //Move left or right if target is not within close range
-    if (enemyTargetX + difficulty[level - 1][0] < enemyX ) {
-        enemyX -= difficulty[level - 1][0];
+    if (enemyTargetX + level[currentLevel - 1].speed < enemyX ) {
+        enemyX -= level[currentLevel - 1].speed;
     }
-    else if (enemyTargetX - difficulty[level - 1][0] > enemyX) {
-        enemyX += difficulty[level - 1][0];
+    else if (enemyTargetX - level[currentLevel - 1].speed > enemyX) {
+        enemyX += level[currentLevel - 1].speed;
     }
 
     //If target is within close range, randomly assign a new target
     else {
 
         //If a random threshold is exceeded, target the ship
-        if (Math.random() > difficulty[level - 1][3]) {
+        if (Math.random() < level[currentLevel - 1].moveToShip) {
             enemyTargetX = shipX;
         }
 
         //Otherwise target a random location
         else {
-            enemyTargetX = 50 + Math.floor(Math.random() * width - 50);
+            enemyTargetX = 50 + Math.floor(Math.random() * width - 100);
         }
      }
 
@@ -296,7 +342,7 @@ function drawEnemy() {
          enemyTargetY = 50;
      }
      else {
-         if (Math.random() > difficulty[level - 1][4]) enemyTargetY = 400;
+         if (Math.random() < level[currentLevel - 1].moveDown) enemyTargetY = 400;
      }
 
     //Draw body and head
@@ -349,12 +395,12 @@ function drawEnemy() {
 function drawEnemyBullets() {
 
     //If enemy is above ship, introduce a new bullet if random threshold is exceeded
-    if (enemyX - shipX < 20 && enemyX - shipX > -20 && Math.random() > difficulty[level - 1][2]) {
+    if (enemyX - shipX < 20 && enemyX - shipX > -20 && Math.random() < level[currentLevel - 1].shootShip) {
         enemyBullets.push([enemyX, enemyY + 50])
     }
 
     //Otherwise, introduce a new bullet if another (less likely) threshold is exceeded
-    else if (Math.random() > difficulty[level - 1][1]) {
+    else if (Math.random() < level[currentLevel - 1].shootSpace) {
         enemyBullets.push([enemyX, enemyY + 50])
     }
 
@@ -440,15 +486,15 @@ function explode(enemy) {
 
 //Game over
 function gameOver() {
-    clearInterval(ammoInterval);
+    clearInterval(shipAmmoInterval);
     c.fillStyle = 'white'
     c.font = 'bold 200px sans-serif';
     c.fillText('GAME OVER', 125, height / 2);
     c.font = 'bold 40px sans-serif';
     c.fillText('Hit enter to play again', 550, height / 2 + 100  );
     shipLives = 3;
-    ammo = 10;
-    level = 1;
+    shipAmmo = 10;
+    currentLevel = 1;
     window.addEventListener('keydown', initializeLevel);
 
 }
@@ -488,8 +534,8 @@ function renderStatus() {
     //Draw numbers
     c2.fillStyle = 'white';
     c2.font = '48px sans-serif';
-    c2.fillText(level, 60, statusHeight/ 1.5);
-    c2.fillText(ammo, width / 2 + 10, statusHeight / 1.5);
+    c2.fillText(currentLevel, 60, statusHeight/ 1.5);
+    c2.fillText(shipAmmo, width / 2 + 10, statusHeight / 1.5);
     c2.fillText(shipLives, width - 55, statusHeight / 1.5);
 
     //Draw world
