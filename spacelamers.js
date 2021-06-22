@@ -26,23 +26,20 @@ const level = [
 ];
 
 //Initialize game objects
-let stars = [];
-let planets = [];
-
 const ship = {
     lives: 0,
     refractory: false
 };
 
+let stars = [];
+let planets = [];
 let enemies = [];
 
 //Initialize object for remembering keys pressed
 const keysPressed = {};
 
-//Initialize level-independent variables
+//Initialize or declare other variables
 let currentLevel = 0;
-
-//Declare level-dependent variables
 let play;
 let explosion;
 
@@ -59,11 +56,9 @@ function generateStars() {
     }
 }
 
-//Prepares for the next level
+//Prepare for the next level
 function nextLevel() {
-
     if (ship.ammoInterval) clearInterval(ship.ammoInterval);
-
     ship.lives++;
     currentLevel++;
     ship.ammo = 10;
@@ -82,15 +77,13 @@ function initializeLevel(e) {
 
     if (e.key === 'Enter') {
         window.removeEventListener('keydown', initializeLevel);
-
         play = true;
-
         ship.x = width / 2;
         ship.bullets = [];
         ship.ammoInterval = setInterval(() => {ship.ammo++; renderStatus()}, 2000)
-
         enemies = [];
         
+        //Initialize enemies
         for (let i = 0; i < level[currentLevel - 1].enemies; i++) {
             enemies.push({
                 x: 50 + Math.floor(Math.random() * width - 50),
@@ -102,16 +95,15 @@ function initializeLevel(e) {
                 lives: level[currentLevel - 1].enemyLives
             })
         }
- 
         renderStatus();
         render();
     }
 }
 
-//Keep track of which keys are currently pressed. Except the space key, which needs to be pressed repeatedly
+//Keep track of which keys are currently pressed, except the space key, which needs to be pressed repeatedly
 function keyDown(e) {
     if (play && e.key === ' ' && ship.ammo > 0) {
-        ship.bullets.push([ship.x, height - 65]);
+        ship.bullets.push({x: ship.x, y: height - 65});
         ship.ammo--;
         renderStatus();
         return;
@@ -136,10 +128,10 @@ function checkKeys() {
 function checkHits() {
     //Check whether ship is hit by enemy bullet.
     for (let enemy of enemies) {
-        for ([x, y] of enemy.bullets) {
+        for ({x, y} of enemy.bullets) {
             if (!ship.refractory && x > ship.x - 40 && x < ship.x + 40 && y > height - 65 + Math.abs(x - ship.x) && y < height - 5) {
                 
-                //If so, a life is lost and the ship needs to turn yellow and back blue again.
+                //If so, a life is lost and the ship becomes refractory for one second
                 ship.lives -= 1;
                 ship.refractory = true;
                 setTimeout(() => ship.refractory = false, 1000);
@@ -158,14 +150,13 @@ function checkHits() {
  
     //Check whether enemy is hit by ship bullet
     for (let enemy of enemies) {
-        for ([x, y] of ship.bullets) {
+        for ({x, y} of ship.bullets) {
             if (!enemy.refractory && x > enemy.x - 50 && x < enemy.x + 50 && y < enemy.y + 40 && y > enemy.y + 10) {
     
-                //If so, an enemy life is lost and the ship needs to turn yellow and back red again.
+                //If so, an enemy life is lost and the enemy becomes refractory for one second
                 enemy.lives -= 1;
                 enemy.refractory = true;
                 setTimeout(() => enemy.refractory = false, 1000);
-                
     
                 //If all lives are lost, explode enemy
                 if (enemy.lives === 0) {
@@ -177,16 +168,14 @@ function checkHits() {
         }
     }
 
+    //If all enemies are dead, proceed to next level
     if (enemies.length === 0) {
         play = false;
         setTimeout(() => nextLevel(), 2000);
     }
+}
 
-
- }
-
-
-//Draw the stars
+//Draw stars
 function drawStars() {
 
     //Create new star
@@ -199,15 +188,12 @@ function drawStars() {
     }
 
     //Move all stars 1 pixel to the south
-    stars = stars.map(star => ({
-        x: star.x,
-        y: star.y + star.dy,
-        dy: star.dy}));
-
+    stars.forEach(star => star.y += star.dy)
+ 
     //Filter stars that have left the screen
     stars = stars.filter(star => star.y < height)
 
-    //Draw the remaining stars
+    //Draw remaining stars
     c.fillStyle = 'white'
     stars.forEach(star => {
         c.beginPath();
@@ -216,10 +202,10 @@ function drawStars() {
     })
 }
 
-//Draw the planets
+//Draw planets
 function drawPlanets() {
 
-    //Create a new planet
+    //Create new planet
     if (Math.random() < 0.001) {
         planets.push({
             x: Math.floor(Math.random() * width),
@@ -236,23 +222,12 @@ function drawPlanets() {
     }
 
     //Move all planets 1 pixel to the south
-    planets = planets.map(planet => ({
-        x: planet.x,
-        y: planet.y + planet.dy,
-        dy: planet.dy,
-        r: planet.r,
-        gradR1: planet.gradR1,
-        gradG1: planet.gradG1,
-        gradB1: planet.gradB1,
-        gradR2: planet.gradR2,
-        gradG2: planet.gradG2,
-        gradB2: planet.gradB2,
-        }));
+    planets.forEach(planet => planet.y += planet.dy)
 
     //Filter planets that have left the screen
     planets = planets.filter(planet => planet.y < height + 25)
 
-    //Draw the remaining planets
+    //Draw remaining planets
     planets.forEach(planet => {
         c.beginPath();
         c.moveTo(planet.x, planet.y);
@@ -269,7 +244,7 @@ function drawPlanets() {
     })
 }
 
-//Draw the ship
+//Draw ship
 function drawShip() {
 
     c.fillStyle = ship.refractory ? `rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})` : 'blue'
@@ -281,7 +256,7 @@ function drawShip() {
     c.lineTo(ship.x + 20, height - 45);
     c.fill();
 
-    //Draw the left wing
+    //Draw left wing
     c.beginPath();
     c.moveTo(ship.x - 20, height - 45);
     c.lineTo(ship.x, height - 25);
@@ -296,36 +271,34 @@ function drawShip() {
     c.lineTo(ship.x + 20, height - 5);
     c.lineTo(ship.x, height - 25);
     c.fill();
+}
 
-    
- }
-
-//Draw bullets fired by the ship
+//Draw bullets fired by ship
 function drawShipBullets() {
 
     //Move all bullets 10 pixels to the north
-    ship.bullets = ship.bullets.map(bullet => ([bullet[0], bullet[1] - 10]));
+    ship.bullets.forEach(bullet => bullet.y -= 10);
 
     //Filter bullets that have left the screen
-    ship.bullets = ship.bullets.filter(bullet => bullet[1] > 10);
+    ship.bullets = ship.bullets.filter(bullet => bullet.y > 10);
 
-    //Draw the remaining bullets
+    //Draw remaining bullets
     c.fillStyle = 'blue';
 
     ship.bullets.forEach(bullet => {
         c.beginPath();
-        c.moveTo(bullet[0], bullet[1]);
-        c.lineTo(bullet[0] + 5, bullet[1] + 10);
-        c.lineTo(bullet[0] + 5, bullet[1] + 20);
-        c.lineTo(bullet[0] - 5, bullet[1] + 20);
-        c.lineTo(bullet[0] - 5, bullet[1] + 10);
+        c.moveTo(bullet.x, bullet.y);
+        c.lineTo(bullet.x + 5, bullet.y + 10);
+        c.lineTo(bullet.x + 5, bullet.y + 20);
+        c.lineTo(bullet.x - 5, bullet.y + 20);
+        c.lineTo(bullet.x - 5, bullet.y + 10);
         c.closePath();
         c.fill();
     })
 }
 
-//Draw the enemy
-function drawEnemy() {
+//Draw enemies
+function drawEnemies() {
 
     for (let enemy of enemies) {
 
@@ -419,30 +392,30 @@ function drawEnemyBullets() {
 
         //If enemy is above ship, introduce a new bullet if random threshold is exceeded
         if (enemy.x - ship.x < 20 && enemy.x - ship.x > -20 && Math.random() < level[currentLevel - 1].shootShip) {
-            enemy.bullets.push([enemy.x, enemy.y + 50])
+            enemy.bullets.push({x: enemy.x, y: enemy.y + 50})
         }
 
         //Otherwise, introduce a new bullet if another (less likely) threshold is exceeded
         else if (Math.random() < level[currentLevel - 1].shootSpace) {
-            enemy.bullets.push([enemy.x, enemy.y + 50])
+            enemy.bullets.push({x: enemy.x, y: enemy.y + 50})
         }
 
         //Move all bullets 10 pixels to the south
-        enemy.bullets = enemy.bullets.map(bullet => ([bullet[0], bullet[1] + 10]));
+        enemy.bullets.forEach(bullet => bullet.y += 10);
 
         //Filter bullets that have left the screen
-        enemy.bullets = enemy.bullets.filter(bullet => bullet[1] < width - 10);
+        enemy.bullets = enemy.bullets.filter(bullet => bullet.y < height - 10);
 
         //Draw the remaining bullets
         c.fillStyle = enemy.color;
 
         enemy.bullets.forEach(bullet => {
             c.beginPath();
-            c.moveTo(bullet[0], bullet[1]);
-            c.lineTo(bullet[0] - 5, bullet[1] - 10);
-            c.lineTo(bullet[0] - 5, bullet[1] -20);
-            c.lineTo(bullet[0] + 5, bullet[1] - 20);
-            c.lineTo(bullet[0] + 5, bullet[1] - 10);
+            c.moveTo(bullet.x, bullet.y);
+            c.lineTo(bullet.x - 5, bullet.y - 10);
+            c.lineTo(bullet.x - 5, bullet.y -20);
+            c.lineTo(bullet.x + 5, bullet.y - 20);
+            c.lineTo(bullet.x + 5, bullet.y - 10);
             c.closePath();
             c.fill();
         })
@@ -480,10 +453,8 @@ function explode(x, y, color) {
         if (ship.lives > 0) drawShip();
 
         drawShipBullets();
-        drawEnemy();
+        drawEnemies();
         drawEnemyBullets();
-    
-   
  
         c.fillStyle = color;
 
@@ -511,8 +482,6 @@ function explode(x, y, color) {
         else {
             explosion = false;
         }
-
-        
     }
  
 }
@@ -541,7 +510,7 @@ function render() {
     drawPlanets();
     drawShip();
     drawShipBullets();
-    drawEnemy();
+    drawEnemies();
     drawEnemyBullets();
   
     if (play && !explosion) {
