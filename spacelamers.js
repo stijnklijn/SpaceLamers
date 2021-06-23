@@ -17,13 +17,13 @@ and chances per frame of enemy shooting space (when ship not underneath), shooti
 target distance to ship and chances of enemy moving downward.
 */
 const level = [
-    {enemies: 1, enemyLives: 2, speed: 2, shootSpace: 0.005, shootShip: 0.02, shootMega: 0, targetDistance: 600, moveDown: 0},
-    {enemies: 1, enemyLives: 3, speed: 4, shootSpace: 0.005, shootShip: 0.02, shootMega: 0, targetDistance: 500, moveDown: 0},
-    {enemies: 1, enemyLives: 3, speed: 6, shootSpace: 0.02, shootShip: 0.1, shootMega: 0, targetDistance: 200, moveDown: 0.001},
-    {enemies: 2, enemyLives: 3, speed: 8, shootSpace: 0.02, shootShip: 0.1, shootMega: 0, targetDistance: 500, moveDown: 0.01},
-    {enemies: 2, enemyLives: 3, speed: 10, shootSpace: 0.03, shootShip: 0.15, shootMega: 0.001, targetDistance: 500, moveDown: 0.02},
-    {enemies: 2, enemyLives: 3, speed: 12, shootSpace: 0.05, shootShip: 0.2, shootMega: 0.002, targetDistance: 300, moveDown: 0.05},
-    {enemies: 3, enemyLives: 3, speed: 12, shootSpace: 0.05, shootShip: 0.2, shootMega: 0.002, targetDistance: 400, moveDown: 0.05},
+    {enemies: 1, enemyLives: 2, speed: 2, shootSpace: 0.005, shootShip: 0.02, shootMega: 0, targetDistance: 600, moveDown: 0, laser: 0},
+    {enemies: 1, enemyLives: 3, speed: 4, shootSpace: 0.005, shootShip: 0.02, shootMega: 0, targetDistance: 500, moveDown: 0, laser: 0},
+    {enemies: 1, enemyLives: 3, speed: 6, shootSpace: 0.02, shootShip: 0.1, shootMega: 0, targetDistance: 200, moveDown: 0.001, laser: 0},
+    {enemies: 2, enemyLives: 3, speed: 8, shootSpace: 0.02, shootShip: 0.1, shootMega: 0, targetDistance: 500, moveDown: 0.01, laser: 0},
+    {enemies: 2, enemyLives: 3, speed: 10, shootSpace: 0.03, shootShip: 0.15, shootMega: 0.001, targetDistance: 500, moveDown: 0.02, laser: 1},
+    {enemies: 2, enemyLives: 3, speed: 12, shootSpace: 0.03, shootShip: 0.15, shootMega: 0.002, targetDistance: 300, moveDown: 0.05, laser: 2},
+    {enemies: 3, enemyLives: 3, speed: 12, shootSpace: 0.03, shootShip: 0.15, shootMega: 0.002, targetDistance: 400, moveDown: 0.05, laser: 3},
 ];
 
 //Initialize game objects
@@ -43,6 +43,7 @@ const keysPressed = {};
 let currentLevel = 0;
 let play;
 let explosion;
+let laser;
 
 //Generate initial stars
 function generateStars() {
@@ -65,13 +66,14 @@ function nextLevel() {
     ship.lives++;
     currentLevel++;
     ship.ammo = 10;
+    ship.laser = level[currentLevel - 1].laser;
     c.fillStyle = 'white';
     c.strokeStyle = 'white'
-    c.font = 'bold 100px sans-serif';
+    c.font = 'bold 100px monospace';
     c.strokeRect(525, height / 2 - 125, 500, 300)
-    c.fillText('Level ' + currentLevel, 600, height / 2);
-    c.font = 'bold 40px sans-serif';
-    c.fillText('Hit enter to continue', 570, height / 2 + 100  );
+    c.fillText('Level ' + currentLevel, 575, height / 2);
+    c.font = 'bold 40px monospace';
+    c.fillText('Hit enter to continue', 540, height / 2 + 100  );
     window.addEventListener('keydown', initializeLevel);
 }
 
@@ -89,6 +91,7 @@ function initializeLevel(e) {
         //Initialize enemies
         for (let i = 0; i < level[currentLevel - 1].enemies; i++) {
             enemies.push({
+                active: true,
                 x: 50 + Math.floor(Math.random() * width - 100),
                 y: 50 + i * 100,
                 targetX: 50 + Math.floor(Math.random() * width - 100),
@@ -111,6 +114,15 @@ function keyDown(e) {
         renderStatus();
         return;
     }
+
+    if (play && !laser && e.key === 'Control' && ship.laser > 0) {
+        laser = true;
+        setTimeout(() => laser = false, 1000)
+        ship.laser--;
+        renderStatus();
+        return;
+    }
+
     keysPressed[e.key] =  true;
 }
 
@@ -131,51 +143,69 @@ function checkKeys() {
 function checkHits() {
     //Check whether ship is hit by enemy bullet.
     for (let enemy of enemies) {
-        for ({x, y, mega} of enemy.bullets) {
-            if (!ship.refractory && !mega && x > ship.x - 40 && x < ship.x + 40 && y > height - 65 + Math.abs(x - ship.x) && y < height - 5
-                || !ship.refractory && mega && x > ship.x - 80 && x < ship.x + 80 && y > height - 65 + Math.abs(x - ship.x) && y - 160 < height - 5) {
-                
-                //If so, a life is lost and the ship becomes refractory for one second
-                ship.lives -= 1;
-                ship.refractory = true;
-                setTimeout(() => ship.refractory = false, 1000);
-                renderStatus();
-                
-                //If all lives are lost, the game is over
-                if (ship.lives === 0) {
-                    play = false;
-                    explode(ship.x, height - 65, 'blue');
-                    setTimeout(() => gameOver(), 2000);
-                 }
+        if (enemy.active) {
+            for ({x, y, mega} of enemy.bullets) {
+                if ((!ship.refractory && !mega && x > ship.x - 40 && x < ship.x + 40 && y > height - 65 + Math.abs(x - ship.x) && y < height - 5)
+                    || (!ship.refractory && mega && x > ship.x - 80 && x < ship.x + 80 && y > height - 65 + Math.abs(x - ship.x) && y - 160 < height - 5)) {
+                    
+                    //If so, a life is lost and the ship becomes refractory for one second
+                    ship.lives -= 1;
+                    ship.refractory = true;
+                    setTimeout(() => ship.refractory = false, 1000);
+                    renderStatus();
+                    
+                    //If all lives are lost, the game is over
+                    if (ship.lives === 0) {
+                        play = false;
+                        explode(ship.x, height - 65, 'blue');
+                        setTimeout(() => gameOver(), 2000);
+                    }
+                }
             }
         }
-    }
+     }
  
-    //Check whether enemy is hit by ship bullet
-    for (let enemy of enemies) {
-        for ({x, y} of ship.bullets) {
-            if (!enemy.refractory && x > enemy.x - 50 && x < enemy.x + 50 && y < enemy.y + 40 && y > enemy.y + 10) {
-    
-                //If so, an enemy life is lost and the enemy becomes refractory for one second
-                enemy.lives -= 1;
-                enemy.refractory = true;
-                setTimeout(() => enemy.refractory = false, 1000);
-    
-                //If all lives are lost, delete enemy from array and explode enemy
-                if (enemy.lives === 0) {
-                    enemies = enemies.filter(enemy => enemy.lives > 0);
-                    explosion = true;
-                    explode(enemy.x, enemy.y, enemy.color);
+     for (let enemy of enemies) {
+
+        if (enemy.active) {
+
+            //Check whether enemy is hit by ship bullet
+            for ({x, y} of ship.bullets) {
+                if (!enemy.refractory && x > enemy.x - 50 && x < enemy.x + 50 && y < enemy.y + 40 && y > enemy.y + 10) {
+                    processEnemyHit(enemies.indexOf(enemy));
                 }
+            }
+
+            //Check whether enemy is hit by laser
+            if (!enemy.refractory && laser && ship.x < enemy.x + 50 && ship.x > enemy.x - 50) {
+                processEnemyHit(enemies.indexOf(enemy));
             }
         }
     }
 
     //If all enemies are dead, proceed to next level
-    if (enemies.length === 0) {
+    if (enemies.every(enemy => !enemy.active)) {
         play = false;
         setTimeout(() => nextLevel(), 2000);
     }
+}
+
+//Process enemy hit
+function processEnemyHit(enemy) {
+
+    //If enemy hit, an enemy life is lost and the enemy becomes refractory for one second
+    enemies[enemy].lives -= 1;
+    if (enemies[enemy].lives > 0) {
+        enemies[enemy].refractory = true;
+        setTimeout(() => enemies[enemy].refractory = false, 1000);
+    }
+ 
+    //If all lives are lost, inactive and explode enemy
+    else {
+        enemies[enemy].active = false;
+        explosion = true;
+        explode(enemies[enemy].x, enemies[enemy].y, enemies[enemy].color);
+       }
 }
 
 //Draw stars
@@ -300,149 +330,166 @@ function drawShipBullets() {
     })
 }
 
+//Draw laser fired by ship
+function drawLaser() {
+    c.strokeStyle = 'red';
+    c.lineWidth = 10;
+    c.beginPath();
+    c.moveTo(ship.x, 0);
+    c.lineTo(ship.x, height - 65);
+    c.stroke();
+}
+
 //Draw enemies
 function drawEnemies() {
 
     for (let enemy of enemies) {
 
-        //Move left or right if target is not within close range
-        if (enemy.targetX + level[currentLevel - 1].speed < enemy.x ) {
-            enemy.x -= level[currentLevel - 1].speed;
+        if (enemy.active) {
+
+            //Move left or right if target is not within close range
+            if (enemy.targetX + level[currentLevel - 1].speed < enemy.x ) {
+                enemy.x -= level[currentLevel - 1].speed;
+            }
+            else if (enemy.targetX - level[currentLevel - 1].speed > enemy.x) {
+                enemy.x += level[currentLevel - 1].speed;
+            }
+
+            //If target is within close range, randomly assign a new target within the target distance of the ship
+            else {
+                enemy.targetX = ship.x - level[currentLevel - 1].targetDistance + Math.floor(Math.random() * 2 * level[currentLevel - 1].targetDistance);
+                enemy.targetX = Math.max(50, enemy.targetX);
+                enemy.targetX = Math.min(enemy.targetX, width - 50);
+            }
+
+            //Move up or down according to target location
+            if (enemy.targetY > enemy.y) {
+                enemy.y += 5;
+            }
+            else if (enemy.targetY < enemy.y) {
+                enemy.y -= 5;
+            }
+            else if (enemy.targetY === 400) {
+                enemy.targetY = 50 + enemies.indexOf(enemy) * 100;
+            }
+            else {
+                if (Math.random() < level[currentLevel - 1].moveDown) enemy.targetY = 400;
+            }
+
+            c.fillStyle = enemy.refractory ? `rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})` : enemy.color;
+
+            //Draw body and head
+            
+            c.beginPath();
+            c.arc(enemy.x, enemy.y, 25, 0, 2 * Math.PI, true);
+            c.ellipse(enemy.x, enemy.y + 25, 50, 15, 0, 0, 2 * Math.PI, true);
+            c.fill();
+
+            //Draw face
+            c.beginPath();
+            c.arc(enemy.x, enemy.y, 20, 0, 2 * Math.PI, true);
+            c.fillStyle = 'black';
+            c.fill();
+
+            //Draw left eye
+            c.beginPath();
+            c.arc(enemy.x - 7, enemy.y, 3, 0, 2 * Math.PI, true);
+            c.fillStyle = enemy.color;
+            c.fill();
+
+            //Draw right eye
+            c.beginPath();
+            c.arc(enemy.x + 7, enemy.y, 3, 0, 2 * Math.PI, true);
+            c.fill();
+
+            //Draw left eyebrow
+            c.beginPath();
+            c.moveTo(enemy.x - 12, enemy.y - 10)
+            c.lineTo(enemy.x - 2, enemy.y - 7);
+            c.lineWidth = 2;
+            c.strokeStyle = enemy.color;
+            c.stroke();
+
+            //Draw right eyebrow
+            c.beginPath();
+            c.moveTo(enemy.x + 12, enemy.y - 10)
+            c.lineTo(enemy.x + 2, enemy.y - 7);
+            c.stroke();
+
+            //Draw mouth
+            c.beginPath();
+            c.moveTo(enemy.x - 10, enemy.y + 10);
+            c.lineTo(enemy.x + 10, enemy.y + 10);
+            c.stroke();
         }
-        else if (enemy.targetX - level[currentLevel - 1].speed > enemy.x) {
-            enemy.x += level[currentLevel - 1].speed;
-        }
-
-        //If target is within close range, randomly assign a new target within the target distance of the ship
-        else {
-            enemy.targetX = ship.x - level[currentLevel - 1].targetDistance + Math.floor(Math.random() * 2 * level[currentLevel - 1].targetDistance);
-            enemy.targetX = Math.max(50, enemy.targetX);
-            enemy.targetX = Math.min(enemy.targetX, width - 50);
-        }
-
-        //Move up or down according to target location
-        if (enemy.targetY > enemy.y) {
-            enemy.y += 5;
-        }
-        else if (enemy.targetY < enemy.y) {
-            enemy.y -= 5;
-        }
-        else if (enemy.targetY === 400) {
-            enemy.targetY = 50 + enemies.indexOf(enemy) * 100;
-        }
-        else {
-            if (Math.random() < level[currentLevel - 1].moveDown) enemy.targetY = 400;
-        }
-
-        c.fillStyle = enemy.refractory ? `rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})` : enemy.color;
-
-        //Draw body and head
-        c.beginPath();
-        c.arc(enemy.x, enemy.y, 25, 0, 2 * Math.PI, true);
-        c.ellipse(enemy.x, enemy.y + 25, 50, 15, 0, 0, 2 * Math.PI, true);
-        c.fill();
-
-        //Draw face
-        c.beginPath();
-        c.arc(enemy.x, enemy.y, 20, 0, 2 * Math.PI, true);
-        c.fillStyle = 'black';
-        c.fill();
-
-        //Draw left eye
-        c.beginPath();
-        c.arc(enemy.x - 7, enemy.y, 3, 0, 2 * Math.PI, true);
-        c.fillStyle = enemy.color;
-        c.fill();
-
-        //Draw right eye
-        c.beginPath();
-        c.arc(enemy.x + 7, enemy.y, 3, 0, 2 * Math.PI, true);
-        c.fill();
-
-        //Draw left eyebrow
-        c.beginPath();
-        c.moveTo(enemy.x - 12, enemy.y - 10)
-        c.lineTo(enemy.x - 2, enemy.y - 7);
-        c.lineWidth = 2;
-        c.strokeStyle = enemy.color;
-        c.stroke();
-
-        //Draw right eyebrow
-        c.beginPath();
-        c.moveTo(enemy.x + 12, enemy.y - 10)
-        c.lineTo(enemy.x + 2, enemy.y - 7);
-        c.stroke();
-
-        //Draw mouth
-        c.beginPath();
-        c.moveTo(enemy.x - 10, enemy.y + 10);
-        c.lineTo(enemy.x + 10, enemy.y + 10);
-        c.stroke();
     }
- }
+}
 
 //Draw bullets fired by the enemy
 function drawEnemyBullets() {
 
     for (let enemy of enemies) {
 
-        //If enemy is above ship, introduce a new bullet if random threshold is exceeded
-        if (enemy.x - ship.x < 20 && enemy.x - ship.x > -20 && Math.random() < level[currentLevel - 1].shootShip) {
-            enemy.bullets.push({x: enemy.x, y: enemy.y + 50, mega: false})
+        if (enemy.active) {
+
+            //If enemy is above ship, introduce a new bullet if random threshold is exceeded
+            if (enemy.x - ship.x < 20 && enemy.x - ship.x > -20 && Math.random() < level[currentLevel - 1].shootShip) {
+                enemy.bullets.push({x: enemy.x, y: enemy.y + 50, mega: false})
+            }
+
+            //Otherwise, introduce a new bullet if another (less likely) threshold is exceeded
+            else if (Math.random() < level[currentLevel - 1].shootSpace) {
+                enemy.bullets.push({x: enemy.x, y: enemy.y + 50, mega: false})
+            }
+
+            //Introduce a mega bullet if another (even less likely) threshold is exceeded
+            else if (Math.random() < level[currentLevel - 1].shootMega) {
+                enemy.bullets.push({x: enemy.x, y: enemy.y + 190, mega: true})
+            }
+
+            //Move all bullets to the south
+            enemy.bullets.forEach(bullet => {
+                if (bullet.mega) {
+                    bullet.y += 1;
+                }
+                else {
+                    bullet.y += 10;
+                }
+            });
+
+            //Filter bullets that have left the screen
+            enemy.bullets = enemy.bullets.filter(bullet => bullet.y < height + 160);
+
+            //Draw remaining bullets
+            enemy.bullets.forEach(bullet => {
+                if (!bullet.mega) {
+                    c.fillStyle = enemy.color;
+                    c.beginPath();
+                    c.moveTo(bullet.x, bullet.y);
+                    c.lineTo(bullet.x - 5, bullet.y - 10);
+                    c.lineTo(bullet.x - 5, bullet.y -20);
+                    c.lineTo(bullet.x + 5, bullet.y - 20);
+                    c.lineTo(bullet.x + 5, bullet.y - 10);
+                    c.closePath();
+                    c.fill();
+                }
+                else {
+                    let linGrad = c.createLinearGradient(bullet.x - 40, bullet.y - 160, bullet.x + 40, bullet.y);
+                    linGrad.addColorStop(0, 'black');
+                    linGrad.addColorStop(1, enemy.color);
+                    c.fillStyle = linGrad;
+                    c.beginPath();
+                    c.moveTo(bullet.x, bullet.y);
+                    c.lineTo(bullet.x - 40, bullet.y - 80);
+                    c.lineTo(bullet.x - 40, bullet.y - 160);
+                    c.lineTo(bullet.x + 40, bullet.y - 160);
+                    c.lineTo(bullet.x + 40, bullet.y - 80);
+                    c.closePath();
+                    c.fill();
+                }
+            })
         }
-
-        //Otherwise, introduce a new bullet if another (less likely) threshold is exceeded
-        else if (Math.random() < level[currentLevel - 1].shootSpace) {
-            enemy.bullets.push({x: enemy.x, y: enemy.y + 50, mega: false})
-        }
-
-        //Introduce a mega bullet if another (even less likely) threshold is exceeded
-        else if (Math.random() < level[currentLevel - 1].shootMega) {
-            enemy.bullets.push({x: enemy.x, y: enemy.y + 190, mega: true})
-        }
-
-        //Move all bullets to the south
-        enemy.bullets.forEach(bullet => {
-            if (bullet.mega) {
-                bullet.y += 1;
-            }
-            else {
-                bullet.y += 10;
-            }
-        });
-
-        //Filter bullets that have left the screen
-        enemy.bullets = enemy.bullets.filter(bullet => bullet.y < height + 160);
-
-        //Draw remaining bullets
-        enemy.bullets.forEach(bullet => {
-            if (!bullet.mega) {
-                c.fillStyle = enemy.color;
-                c.beginPath();
-                c.moveTo(bullet.x, bullet.y);
-                c.lineTo(bullet.x - 5, bullet.y - 10);
-                c.lineTo(bullet.x - 5, bullet.y -20);
-                c.lineTo(bullet.x + 5, bullet.y - 20);
-                c.lineTo(bullet.x + 5, bullet.y - 10);
-                c.closePath();
-                c.fill();
-            }
-            else {
-                let linGrad = c.createLinearGradient(bullet.x - 40, bullet.y - 160, bullet.x + 40, bullet.y);
-                linGrad.addColorStop(0, 'black');
-                linGrad.addColorStop(1, enemy.color);
-                c.fillStyle = linGrad;
-                c.beginPath();
-                c.moveTo(bullet.x, bullet.y);
-                c.lineTo(bullet.x - 40, bullet.y - 80);
-                c.lineTo(bullet.x - 40, bullet.y - 160);
-                c.lineTo(bullet.x + 40, bullet.y - 160);
-                c.lineTo(bullet.x + 40, bullet.y - 80);
-                c.closePath();
-                c.fill();
-            }
-         })
-    }
+     }
  }
 
 
@@ -482,6 +529,10 @@ function explode(x, y, color) {
             drawShip();
         } 
 
+        if (ship.lives > 0 && laser) {
+            drawLaser();
+        }
+
         drawShipBullets();
         drawEnemies();
         drawEnemyBullets();
@@ -512,7 +563,7 @@ function explode(x, y, color) {
         }
 
         //Continue the game if the ship is still alive and there are enemies left
-        else if (ship.lives > 0 && enemies.length > 0) {
+        else if (ship.lives > 0 && enemies.some(enemy => enemy.active)) {
             explosion = false; 
             render();
         }
@@ -530,11 +581,11 @@ function gameOver() {
     clearInterval(ship.ammoInterval);
     c.fillStyle = 'white'
     c.strokeStyle = 'white'
-    c.font = 'bold 200px sans-serif';
+    c.font = 'bold 200px monospace';
     c.strokeRect(50, height / 2 - 225, 1400, 400)
-    c.fillText('GAME OVER', 125, height / 2);
-    c.font = 'bold 40px sans-serif';
-    c.fillText('Hit enter to play again', 550, height / 2 + 100  );
+    c.fillText('GAME OVER', 250, height / 2);
+    c.font = 'bold 40px monospace';
+    c.fillText('Hit enter to play again', 500, height / 2 + 100  );
     ship.lives = 3;
     ship.ammo = 10;
     currentLevel = 1;
@@ -552,6 +603,10 @@ function render() {
     drawShipBullets();
     drawEnemies();
     drawEnemyBullets();
+
+    if (laser) {
+        drawLaser();
+    }
   
     if (play && !explosion) {
         requestAnimationFrame(render);
@@ -563,16 +618,17 @@ function renderStatus() {
 
     //Draw numbers
     c2.fillStyle = 'white';
-    c2.font = '48px sans-serif';
-    c2.fillText(currentLevel, 60, statusHeight/ 1.5);
-    c2.fillText(ship.ammo, width / 2 + 10, statusHeight / 1.5);
-    c2.fillText(ship.lives, width - 55, statusHeight / 1.5);
+    c2.font = '48px monospace';
+    c2.fillText(currentLevel, 70, statusHeight/ 1.5);
+    c2.fillText(ship.ammo, 160, statusHeight / 1.5);
+    c2.fillText(ship.laser, 280, statusHeight / 1.5);
+    c2.fillText(ship.lives, 400, statusHeight / 1.5);
 
     //Draw world
     c2.beginPath();
-    c2.moveTo(25, statusHeight / 1.5);
-    c2.arc(30, 35, 25, 0, 2 * Math.PI, true);
-    let linGrad = c2.createLinearGradient(5, 35, 55, 35);
+    c2.moveTo(35, statusHeight / 1.5);
+    c2.arc(40, 35, 25, 0, 2 * Math.PI, true);
+    let linGrad = c2.createLinearGradient(15, 35, 65, 35);
     linGrad.addColorStop(0, 'brown');
     linGrad.addColorStop(1, 'green');
     c2.fillStyle = linGrad;
@@ -580,29 +636,42 @@ function renderStatus() {
     
     //Draw bullet
     c2.beginPath();
-    c2.moveTo(width / 2 - 20, 60);
-    c2.lineTo(width / 2 - 20, 30);
-    c2.lineTo(width / 2 - 10, 10);
-    c2.lineTo(width / 2, 30);
-    c2.lineTo(width / 2, 60);
-    linGrad = c2.createLinearGradient(width / 2 - 20, 35, width / 2, 35);
+    c2.moveTo(130, 60);
+    c2.lineTo(130, 30);
+    c2.lineTo(140, 10);
+    c2.lineTo(150, 30);
+    c2.lineTo(150, 60);
+    linGrad = c2.createLinearGradient(130, 10, 150, 60);
     linGrad.addColorStop(0, 'blue');
     linGrad.addColorStop(1, 'darkblue');
     c2.fillStyle = linGrad;
     c2.fill();
 
+    //Draw laser
+    linGrad = c2.createLinearGradient(250, 10, 270, 60);
+    linGrad.addColorStop(0, 'red');
+    linGrad.addColorStop(1, 'darkred');
+    c2.fillStyle = linGrad;
+    c2.fillRect(250, 10, 20, 50)
+
     //Draw heart
     c2.beginPath();
-    c2.moveTo(width - 75, 40);
-    c2.lineTo(width - 90, 60);
-    c2.lineTo(width - 105, 40);
-    c2.bezierCurveTo(width - 130, 0, width - 100, 0, width - 90, 25);
-    c2.bezierCurveTo(width - 80, 0, width - 50, 0, width - 75, 40);
-    linGrad = c2.createLinearGradient(width - 130, 40, width - 75, 40);
+    c2.moveTo(380, 40);
+    c2.lineTo(365, 60);
+    c2.lineTo(350, 40);
+    c2.bezierCurveTo(325, 0, 355, 0, 365, 25);
+    c2.bezierCurveTo(375, 0, 405, 0, 380, 40);
+    linGrad = c2.createLinearGradient(295, 40, 350, 40);
     linGrad.addColorStop(0, 'red');
     linGrad.addColorStop(1, 'darkred');
     c2.fillStyle = linGrad;
     c2.fill();
+
+    //Show level properties
+    c2.fillStyle = 'white';
+    c2.font = '20px monospace';
+    c2.fillText(`speed: ${level[currentLevel - 1].speed}px/frame, shootSpace: ${(level[currentLevel - 1].shootSpace * 100).toFixed(1)}%, shootShip: ${(level[currentLevel - 1].shootShip * 100).toFixed(1)}%, shootMega: ${(level[currentLevel - 1].shootMega * 100).toFixed(1)}%, targetDistance: ${level[currentLevel - 1].targetDistance}px,`, 475, 25);
+    c2.fillText(`moveDown: ${(level[currentLevel - 1].moveDown * 100).toFixed(1)}%.`, 475, 50);
 }
 
 window.addEventListener('keydown', keyDown);
