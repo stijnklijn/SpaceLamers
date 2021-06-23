@@ -12,17 +12,18 @@ canvas.setAttribute('width', width);
 canvas.setAttribute('height', statusHeight);
 
 /*
-Difficulty variables for each level. Enemy speed in pixels per frame and chances per frame of enemy shooting space (when
-ship not underneath), shooting at ship directly (when ship underneath), moving toward the ship and moving downward.
+Difficulty variables for each level. Number of enemies, number of lives per enemy, enemy speed in pixels per frame,
+and chances per frame of enemy shooting space (when ship not underneath), shooting at ship directly (when ship underneath),
+target distance to ship and chances of enemy moving downward.
 */
 const level = [
-    {enemies: 1, enemyLives: 1, speed: 2, shootSpace: 0.001, shootShip: 0.01, moveToShip: 0.01, moveDown: 0},
-    {enemies: 1, enemyLives: 3, speed: 4, shootSpace: 0.005, shootShip: 0.02, moveToShip: 0.02, moveDown: 0},
-    {enemies: 1, enemyLives: 5, speed: 6, shootSpace: 0.01, shootShip: 0.05, moveToShip: 0.05, moveDown: 0.001},
-    {enemies: 2, enemyLives: 3, speed: 8, shootSpace: 0.02, shootShip: 0.1, moveToShip: 0.1, moveDown: 0.01},
-    {enemies: 2, enemyLives: 3, speed: 10, shootSpace: 0.03, shootShip: 0.15, moveToShip: 0.2, moveDown: 0.02},
-    {enemies: 2, enemyLives: 4, speed: 12, shootSpace: 0.05, shootShip: 0.2, moveToShip: 0.3, moveDown: 0.05},
-    {enemies: 3, enemyLives: 3, speed: 15, shootSpace: 0.1, shootShip: 0.25, moveToShip: 0.5, moveDown: 0.1},
+    {enemies: 1, enemyLives: 2, speed: 2, shootSpace: 0.005, shootShip: 0.02, targetDistance: 600, moveDown: 0},
+    {enemies: 1, enemyLives: 3, speed: 4, shootSpace: 0.005, shootShip: 0.02, targetDistance: 500, moveDown: 0},
+    {enemies: 1, enemyLives: 3, speed: 6, shootSpace: 0.02, shootShip: 0.1, targetDistance: 200, moveDown: 0.001},
+    {enemies: 2, enemyLives: 3, speed: 8, shootSpace: 0.02, shootShip: 0.1, targetDistance: 500, moveDown: 0.01},
+    {enemies: 2, enemyLives: 3, speed: 10, shootSpace: 0.03, shootShip: 0.15, targetDistance: 500, moveDown: 0.02},
+    {enemies: 2, enemyLives: 3, speed: 12, shootSpace: 0.05, shootShip: 0.2, targetDistance: 300, moveDown: 0.05},
+    {enemies: 3, enemyLives: 3, speed: 12, shootSpace: 0.05, shootShip: 0.2, targetDistance: 400, moveDown: 0.05},
 ];
 
 //Initialize game objects
@@ -58,7 +59,9 @@ function generateStars() {
 
 //Prepare for the next level
 function nextLevel() {
-    if (ship.ammoInterval) clearInterval(ship.ammoInterval);
+    if (ship.ammoInterval) {
+        clearInterval(ship.ammoInterval);
+    } 
     ship.lives++;
     currentLevel++;
     ship.ammo = 10;
@@ -72,7 +75,7 @@ function nextLevel() {
     window.addEventListener('keydown', initializeLevel);
 }
 
-//Initialize level-dependent variables
+//Initialize level
 function initializeLevel(e) {
 
     if (e.key === 'Enter') {
@@ -86,11 +89,11 @@ function initializeLevel(e) {
         //Initialize enemies
         for (let i = 0; i < level[currentLevel - 1].enemies; i++) {
             enemies.push({
-                x: 50 + Math.floor(Math.random() * width - 50),
+                x: 50 + Math.floor(Math.random() * width - 100),
                 y: 50 + i * 100,
-                targetX: 50 + Math.floor(Math.random() * width - 50),
+                targetX: 50 + Math.floor(Math.random() * width - 100),
                 targetY: 50 + i * 100,
-                color: `rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})`,
+                color: `hsl(${Math.random() * 360}, 100%, 50%)`,
                 bullets: [],
                 lives: level[currentLevel - 1].enemyLives
             })
@@ -145,7 +148,6 @@ function checkHits() {
                  }
             }
         }
-    
     }
  
     //Check whether enemy is hit by ship bullet
@@ -158,7 +160,7 @@ function checkHits() {
                 enemy.refractory = true;
                 setTimeout(() => enemy.refractory = false, 1000);
     
-                //If all lives are lost, explode enemy
+                //If all lives are lost, delete enemy from array and explode enemy
                 if (enemy.lives === 0) {
                     enemies = enemies.filter(enemy => enemy.lives > 0);
                     explosion = true;
@@ -310,18 +312,11 @@ function drawEnemies() {
             enemy.x += level[currentLevel - 1].speed;
         }
 
-        //If target is within close range, randomly assign a new target
+        //If target is within close range, randomly assign a new target within the target distance of the ship
         else {
-
-            //If a random threshold is exceeded, target the ship
-            if (Math.random() < level[currentLevel - 1].moveToShip) {
-                enemy.targetX = ship.x;
-            }
-
-            //Otherwise target a random location
-            else {
-                enemy.targetX = 50 + Math.floor(Math.random() * width - 100);
-            }
+            enemy.targetX = ship.x - level[currentLevel - 1].targetDistance + Math.floor(Math.random() * 2 * level[currentLevel - 1].targetDistance);
+            enemy.targetX = Math.max(50, enemy.targetX);
+            enemy.targetX = Math.min(enemy.targetX, width - 50);
         }
 
         //Move up or down according to target location
@@ -420,14 +415,16 @@ function drawEnemyBullets() {
             c.fill();
         })
     }
-
  }
 
+
+//Explode ship or enemy if all lives are lost
 function explode(x, y, color) {
 
     let frames = 0;
     let fragments = [];
 
+    //Generate parameters for 100 triangular shards and push into array
     for (let i = 0; i < 100; i++) {
         let r = 5 + Math.random() * 30;
         let theta1 = Math.random() * 2 * Math.PI;
@@ -440,17 +437,22 @@ function explode(x, y, color) {
         fragments.push([r, theta1, theta2, theta3, dx, dy, dr, ds])
     }
 
+    //Render the explosion
     renderExplode();
 
     function renderExplode() {
 
+        //Clear the canvas
         c.clearRect(0, 0, width, height);
 
+        //Render usual scene on the background
         checkKeys();
         drawStars();
         drawPlanets();
 
-        if (ship.lives > 0) drawShip();
+        if (ship.lives > 0) {
+            drawShip();
+        } 
 
         drawShipBullets();
         drawEnemies();
@@ -458,27 +460,37 @@ function explode(x, y, color) {
  
         c.fillStyle = color;
 
+        //Draw 100 triangular shards with given parameters
         for (fragment of fragments) {
             let [r, theta1, theta2, theta3, dx, dy, dr, ds] = fragment;
             c.beginPath();
-            c.moveTo(x + frames * ds * r * Math.cos(theta1 + frames * dr * (Math.PI / 180)) + frames * dx, y + frames * ds * r * Math.sin(theta1 + frames * dr * (Math.PI / 180)) + frames * dy);
-            c.lineTo(x + frames * ds * r * Math.cos(theta2 + frames * dr * (Math.PI / 180)) + frames * dx, y + frames * ds * r * Math.sin(theta2 + frames * dr * (Math.PI / 180)) + frames * dy);
-            c.lineTo(x + frames * ds * r * Math.cos(theta3 + frames * dr * (Math.PI / 180)) + frames * dx, y + frames * ds * r * Math.sin(theta3 + frames * dr * (Math.PI / 180)) + frames * dy);
+            c.moveTo(
+                x + frames * ds * r * Math.cos(theta1 + frames * dr * (Math.PI / 180)) + frames * dx,
+                y + frames * ds * r * Math.sin(theta1 + frames * dr * (Math.PI / 180)) + frames * dy);
+            c.lineTo(
+                x + frames * ds * r * Math.cos(theta2 + frames * dr * (Math.PI / 180)) + frames * dx,
+                y + frames * ds * r * Math.sin(theta2 + frames * dr * (Math.PI / 180)) + frames * dy);
+            c.lineTo(
+                x + frames * ds * r * Math.cos(theta3 + frames * dr * (Math.PI / 180)) + frames * dx,
+                y + frames * ds * r * Math.sin(theta3 + frames * dr * (Math.PI / 180)) + frames * dy);
             c.closePath();
             c.fill();
         }
 
         frames++;
 
+        //Render exactly 100 frames
         if (frames < 100) {
             requestAnimationFrame(renderExplode);
         }
 
-        else if (enemies.length > 0 && ship.lives > 0) {
+        //Continue the game if the ship is still alive and there are enemies left
+        else if (ship.lives > 0 && enemies.length > 0) {
             explosion = false; 
             render();
         }
 
+        //Otherwise stop rendering
         else {
             explosion = false;
         }
@@ -490,7 +502,9 @@ function explode(x, y, color) {
 function gameOver() {
     clearInterval(ship.ammoInterval);
     c.fillStyle = 'white'
+    c.strokeStyle = 'white'
     c.font = 'bold 200px sans-serif';
+    c.strokeRect(50, height / 2 - 225, 1400, 400)
     c.fillText('GAME OVER', 125, height / 2);
     c.font = 'bold 40px sans-serif';
     c.fillText('Hit enter to play again', 550, height / 2 + 100  );
@@ -498,7 +512,6 @@ function gameOver() {
     ship.ammo = 10;
     currentLevel = 1;
     window.addEventListener('keydown', initializeLevel);
-
 }
 
 //Clears the canvas and renders all elements
@@ -516,7 +529,6 @@ function render() {
     if (play && !explosion) {
         requestAnimationFrame(render);
     }
- 
 }
 
 function renderStatus() {
