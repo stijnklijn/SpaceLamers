@@ -17,13 +17,13 @@ and chances per frame of enemy shooting space (when ship not underneath), shooti
 target distance to ship and chances of enemy moving downward.
 */
 const level = [
-    {enemies: 1, enemyLives: 2, speed: 2, shootSpace: 0.005, shootShip: 0.02, targetDistance: 600, moveDown: 0},
-    {enemies: 1, enemyLives: 3, speed: 4, shootSpace: 0.005, shootShip: 0.02, targetDistance: 500, moveDown: 0},
-    {enemies: 1, enemyLives: 3, speed: 6, shootSpace: 0.02, shootShip: 0.1, targetDistance: 200, moveDown: 0.001},
-    {enemies: 2, enemyLives: 3, speed: 8, shootSpace: 0.02, shootShip: 0.1, targetDistance: 500, moveDown: 0.01},
-    {enemies: 2, enemyLives: 3, speed: 10, shootSpace: 0.03, shootShip: 0.15, targetDistance: 500, moveDown: 0.02},
-    {enemies: 2, enemyLives: 3, speed: 12, shootSpace: 0.05, shootShip: 0.2, targetDistance: 300, moveDown: 0.05},
-    {enemies: 3, enemyLives: 3, speed: 12, shootSpace: 0.05, shootShip: 0.2, targetDistance: 400, moveDown: 0.05},
+    {enemies: 1, enemyLives: 2, speed: 2, shootSpace: 0.005, shootShip: 0.02, shootMega: 0, targetDistance: 600, moveDown: 0},
+    {enemies: 1, enemyLives: 3, speed: 4, shootSpace: 0.005, shootShip: 0.02, shootMega: 0, targetDistance: 500, moveDown: 0},
+    {enemies: 1, enemyLives: 3, speed: 6, shootSpace: 0.02, shootShip: 0.1, shootMega: 0, targetDistance: 200, moveDown: 0.001},
+    {enemies: 2, enemyLives: 3, speed: 8, shootSpace: 0.02, shootShip: 0.1, shootMega: 0, targetDistance: 500, moveDown: 0.01},
+    {enemies: 2, enemyLives: 3, speed: 10, shootSpace: 0.03, shootShip: 0.15, shootMega: 0.001, targetDistance: 500, moveDown: 0.02},
+    {enemies: 2, enemyLives: 3, speed: 12, shootSpace: 0.05, shootShip: 0.2, shootMega: 0.002, targetDistance: 300, moveDown: 0.05},
+    {enemies: 3, enemyLives: 3, speed: 12, shootSpace: 0.05, shootShip: 0.2, shootMega: 0.002, targetDistance: 400, moveDown: 0.05},
 ];
 
 //Initialize game objects
@@ -131,8 +131,9 @@ function checkKeys() {
 function checkHits() {
     //Check whether ship is hit by enemy bullet.
     for (let enemy of enemies) {
-        for ({x, y} of enemy.bullets) {
-            if (!ship.refractory && x > ship.x - 40 && x < ship.x + 40 && y > height - 65 + Math.abs(x - ship.x) && y < height - 5) {
+        for ({x, y, mega} of enemy.bullets) {
+            if (!ship.refractory && !mega && x > ship.x - 40 && x < ship.x + 40 && y > height - 65 + Math.abs(x - ship.x) && y < height - 5
+                || !ship.refractory && mega && x > ship.x - 80 && x < ship.x + 80 && y > height - 65 + Math.abs(x - ship.x) && y - 160 < height - 5) {
                 
                 //If so, a life is lost and the ship becomes refractory for one second
                 ship.lives -= 1;
@@ -387,33 +388,60 @@ function drawEnemyBullets() {
 
         //If enemy is above ship, introduce a new bullet if random threshold is exceeded
         if (enemy.x - ship.x < 20 && enemy.x - ship.x > -20 && Math.random() < level[currentLevel - 1].shootShip) {
-            enemy.bullets.push({x: enemy.x, y: enemy.y + 50})
+            enemy.bullets.push({x: enemy.x, y: enemy.y + 50, mega: false})
         }
 
         //Otherwise, introduce a new bullet if another (less likely) threshold is exceeded
         else if (Math.random() < level[currentLevel - 1].shootSpace) {
-            enemy.bullets.push({x: enemy.x, y: enemy.y + 50})
+            enemy.bullets.push({x: enemy.x, y: enemy.y + 50, mega: false})
         }
 
-        //Move all bullets 10 pixels to the south
-        enemy.bullets.forEach(bullet => bullet.y += 10);
+        //Introduce a mega bullet if another (even less likely) threshold is exceeded
+        else if (Math.random() < level[currentLevel - 1].shootMega) {
+            enemy.bullets.push({x: enemy.x, y: enemy.y + 190, mega: true})
+        }
+
+        //Move all bullets to the south
+        enemy.bullets.forEach(bullet => {
+            if (bullet.mega) {
+                bullet.y += 1;
+            }
+            else {
+                bullet.y += 10;
+            }
+        });
 
         //Filter bullets that have left the screen
-        enemy.bullets = enemy.bullets.filter(bullet => bullet.y < height - 10);
+        enemy.bullets = enemy.bullets.filter(bullet => bullet.y < height + 160);
 
-        //Draw the remaining bullets
-        c.fillStyle = enemy.color;
-
+        //Draw remaining bullets
         enemy.bullets.forEach(bullet => {
-            c.beginPath();
-            c.moveTo(bullet.x, bullet.y);
-            c.lineTo(bullet.x - 5, bullet.y - 10);
-            c.lineTo(bullet.x - 5, bullet.y -20);
-            c.lineTo(bullet.x + 5, bullet.y - 20);
-            c.lineTo(bullet.x + 5, bullet.y - 10);
-            c.closePath();
-            c.fill();
-        })
+            if (!bullet.mega) {
+                c.fillStyle = enemy.color;
+                c.beginPath();
+                c.moveTo(bullet.x, bullet.y);
+                c.lineTo(bullet.x - 5, bullet.y - 10);
+                c.lineTo(bullet.x - 5, bullet.y -20);
+                c.lineTo(bullet.x + 5, bullet.y - 20);
+                c.lineTo(bullet.x + 5, bullet.y - 10);
+                c.closePath();
+                c.fill();
+            }
+            else {
+                let linGrad = c.createLinearGradient(bullet.x - 40, bullet.y - 160, bullet.x + 40, bullet.y);
+                linGrad.addColorStop(0, 'black');
+                linGrad.addColorStop(1, enemy.color);
+                c.fillStyle = linGrad;
+                c.beginPath();
+                c.moveTo(bullet.x, bullet.y);
+                c.lineTo(bullet.x - 40, bullet.y - 80);
+                c.lineTo(bullet.x - 40, bullet.y - 160);
+                c.lineTo(bullet.x + 40, bullet.y - 160);
+                c.lineTo(bullet.x + 40, bullet.y - 80);
+                c.closePath();
+                c.fill();
+            }
+         })
     }
  }
 
@@ -461,8 +489,7 @@ function explode(x, y, color) {
         c.fillStyle = color;
 
         //Draw 100 triangular shards with given parameters
-        for (fragment of fragments) {
-            let [r, theta1, theta2, theta3, dx, dy, dr, ds] = fragment;
+        for ([r, theta1, theta2, theta3, dx, dy, dr, ds] of fragments) {
             c.beginPath();
             c.moveTo(
                 x + frames * ds * r * Math.cos(theta1 + frames * dr * (Math.PI / 180)) + frames * dx,
