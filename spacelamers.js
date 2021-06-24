@@ -139,10 +139,7 @@ function nextLevel(e) {
     ship.ammo = 10;
     ship.laser = level[currentLevel - 1].laser;
 
-    let linGrad = c.createLinearGradient(0, 0, width, height);
-    linGrad.addColorStop(0, 'grey');
-    linGrad.addColorStop(1, 'black');
-    c.fillStyle = linGrad;
+    c.fillStyle = 'black';
     c.fillRect(0, 0, width, height);
     c.fillStyle = 'white';
     c.strokeStyle = 'white'
