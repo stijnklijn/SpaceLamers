@@ -232,7 +232,7 @@ function checkHits() {
                     if (ship.lives === 0) {
                         play = false;
                         explode(ship.x, height - 65, 'blue');
-                        setTimeout(() => gameOver(), 2000);
+                        setTimeout(() => gameOver(false), 2000);
                     }
                 }
             }
@@ -260,7 +260,14 @@ function checkHits() {
     //If all enemies are dead, proceed to next level
     if (enemies.every(enemy => !enemy.active)) {
         play = false;
-        setTimeout(() => nextLevel(), 2000);
+        setTimeout(() => {
+            if (currentLevel < 7) {
+                nextLevel();
+            }
+            else {
+                gameOver(true);
+            }
+        }, 2000);
     }
 }
 
@@ -651,13 +658,23 @@ function explode(x, y, color) {
 }
 
 //Game over
-function gameOver() {
+function gameOver(win) {
     clearInterval(ship.ammoInterval);
     c.fillStyle = 'white'
     c.strokeStyle = 'white'
-    c.font = 'bold 200px monospace';
     c.strokeRect(50, height / 2 - 225, 1400, 400)
-    c.fillText('GAME OVER', 250, height / 2);
+    
+    if (win) {
+        c.font = 'bold 150px monospace';
+        c.fillText('GAME COMPLETED', 175, height / 2);
+    }
+
+    else {
+        c.font = 'bold 200px monospace';
+        c.fillText('GAME OVER', 250, height / 2);
+    
+    }
+    
     c.font = 'bold 40px monospace';
     c.fillText('Hit enter to play again', 500, height / 2 + 100  );
     ship.lives = 0;
