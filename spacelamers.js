@@ -41,6 +41,7 @@ const keysPressed = {};
 
 //Initialize or declare other variables
 let currentLevel = 0;
+let animation;
 let play;
 let explosion;
 let laser;
@@ -58,8 +59,78 @@ function generateStars() {
     }
 }
 
+//Start the game
+function startGame() {
+        
+    //Generate initial title stars
+    let titleStars = [];
+    for (let i = 100; i < 700; i ++ ) {
+        let r = i;
+        let theta = Math.random() * 2 * Math.PI;
+        titleStars.push({r: r, theta: theta});    
+    }
+ 
+    window.addEventListener('keydown', nextLevel);
+
+    renderStars();
+  
+    function renderStars() {
+
+        //Clear the canvas and create new star
+        c.clearRect(0, 0, width, height);
+        let r = 100;
+        let theta = Math.random() * 2 * Math.PI
+        titleStars.push({r: r, theta: theta});
+
+        //Render each star
+        titleStars.forEach(star => {
+            star.r += 1;
+            star.theta += Math.PI / 180;
+            c.fillStyle = 'white';
+            c.beginPath();
+            c.arc(width / 2 + star.r * Math.cos(star.theta), height / 2 + star.r * Math.sin(star.theta), 1, 0, 2 * Math.PI, true);
+            c.fill();
+         })
+
+         //Filter stars
+         titleStars = titleStars.filter(star => star.r < width);
+
+         //Render title
+         c.font = 'bold 200px monospace';
+         let linGrad = c.createLinearGradient(100, 200, 1000, 500);
+         linGrad.addColorStop(0, 'grey');
+         linGrad.addColorStop(1, 'white');
+         c.fillStyle = linGrad;
+         c.fillText('SPACE LAMERS', 100, 200);
+
+         //Render info text
+         c.fillStyle = 'black';
+         c.fillRect(width / 4, 250, width /2, 250);
+         c.strokeStyle = 'white';
+         c.strokeRect(width / 4, 250, width /2, 250);
+         c.fillStyle = 'white';
+         c.font = '30px monospace';
+         c.fillText('Controls', 400, 300);
+         c.fillText('Arrow keys: move', 400, 350);
+         c.fillText('Space: fire bullet', 400, 400);
+         c.fillText('Ctrl: fire laser (level 5 and higher)', 400, 450);
+         c.fillText('Hit enter to continue', 540, 600);
+
+         animation = requestAnimationFrame(renderStars);
+    }
+}
+
 //Prepare for the next level
-function nextLevel() {
+function nextLevel(e) {
+    if (e && e.key !== 'Enter') {
+        return;
+    }
+
+    if (currentLevel === 0) {
+        window.removeEventListener('keydown', nextLevel);
+        cancelAnimationFrame(animation);
+    }
+    
     if (ship.ammoInterval) {
         clearInterval(ship.ammoInterval);
     } 
@@ -67,6 +138,12 @@ function nextLevel() {
     currentLevel++;
     ship.ammo = 10;
     ship.laser = level[currentLevel - 1].laser;
+
+    let linGrad = c.createLinearGradient(0, 0, width, height);
+    linGrad.addColorStop(0, 'grey');
+    linGrad.addColorStop(1, 'black');
+    c.fillStyle = linGrad;
+    c.fillRect(0, 0, width, height);
     c.fillStyle = 'white';
     c.strokeStyle = 'white'
     c.font = 'bold 100px monospace';
@@ -586,10 +663,10 @@ function gameOver() {
     c.fillText('GAME OVER', 250, height / 2);
     c.font = 'bold 40px monospace';
     c.fillText('Hit enter to play again', 500, height / 2 + 100  );
-    ship.lives = 3;
+    ship.lives = 0;
     ship.ammo = 10;
-    currentLevel = 1;
-    window.addEventListener('keydown', initializeLevel);
+    currentLevel = 0;
+    window.addEventListener('keydown', nextLevel);
 }
 
 //Clears the canvas and renders all elements
@@ -678,4 +755,4 @@ window.addEventListener('keydown', keyDown);
 window.addEventListener('keyup', keyUp);
 
 generateStars();
-nextLevel();
+startGame();
