@@ -710,17 +710,16 @@ function renderStatus() {
 
     //Draw numbers
     c2.fillStyle = 'white';
-    c2.font = '48px monospace';
-    c2.fillText(currentLevel, 70, statusHeight/ 1.5);
-    c2.fillText(ship.ammo, 160, statusHeight / 1.5);
-    c2.fillText(ship.laser, 280, statusHeight / 1.5);
-    c2.fillText(ship.lives, 400, statusHeight / 1.5);
+    c2.font = width / 30 + 'px monospace';
+    c2.fillText(currentLevel, 0.07 * width, statusHeight/ 1.5);
+    c2.fillText(ship.ammo, 0.19 * width, statusHeight / 1.5);
+    c2.fillText(ship.laser, 0.31 * width, statusHeight / 1.5);
+    c2.fillText(ship.lives, 0.43 * width, statusHeight / 1.5);
 
     //Draw world
     c2.beginPath();
-    c2.moveTo(35, statusHeight / 1.5);
-    c2.arc(40, 35, 25, 0, 2 * Math.PI, true);
-    let linGrad = c2.createLinearGradient(15, 35, 65, 35);
+    c2.arc(0.05 * width, statusHeight / 2, 25, 0, 2 * Math.PI, true);
+    let linGrad = c2.createLinearGradient(0.03 * width, statusHeight / 2, 0.07 * width, statusHeight / 2);
     linGrad.addColorStop(0, 'brown');
     linGrad.addColorStop(1, 'green');
     c2.fillStyle = linGrad;
@@ -728,32 +727,32 @@ function renderStatus() {
     
     //Draw bullet
     c2.beginPath();
-    c2.moveTo(130, 60);
-    c2.lineTo(130, 30);
-    c2.lineTo(140, 10);
-    c2.lineTo(150, 30);
-    c2.lineTo(150, 60);
-    linGrad = c2.createLinearGradient(130, 10, 150, 60);
+    c2.moveTo(0.17 * width, 0.15 * statusHeight + 50);
+    c2.lineTo(0.17 * width, 0.15 * statusHeight + 20);
+    c2.lineTo(0.17 * width + 10, 0.15 * statusHeight);
+    c2.lineTo(0.17 * width + 20, 0.15 * statusHeight + 20);
+    c2.lineTo(0.17 * width + 20, 0.15 * statusHeight + 50);
+    linGrad = c2.createLinearGradient(0.17 * width, 0.15 * statusHeight, 0.17 * width + 20, 0.15 * statusHeight + 50);
     linGrad.addColorStop(0, 'blue');
     linGrad.addColorStop(1, 'darkblue');
     c2.fillStyle = linGrad;
     c2.fill();
 
     //Draw laser
-    linGrad = c2.createLinearGradient(250, 10, 270, 60);
+    linGrad = c2.createLinearGradient(0.29 * width, 0.15 * statusHeight, 0.29 * width + 20, 0.15 * statusHeight + 50);
     linGrad.addColorStop(0, 'red');
     linGrad.addColorStop(1, 'darkred');
     c2.fillStyle = linGrad;
-    c2.fillRect(250, 10, 20, 50)
+    c2.fillRect(0.29 * width, 0.15 * statusHeight, 20, 50)
 
     //Draw heart
     c2.beginPath();
-    c2.moveTo(380, 40);
-    c2.lineTo(365, 60);
-    c2.lineTo(350, 40);
-    c2.bezierCurveTo(325, 0, 355, 0, 365, 25);
-    c2.bezierCurveTo(375, 0, 405, 0, 380, 40);
-    linGrad = c2.createLinearGradient(295, 40, 350, 40);
+    c2.moveTo(0.38 * width + 55, 0.8 * statusHeight - 20);
+    c2.lineTo(0.38 * width + 40, 0.8 * statusHeight);
+    c2.lineTo(0.38 * width + 25, 0.8 * statusHeight - 20);
+    c2.bezierCurveTo(0.38 * width, 0.8 * statusHeight - 60, 0.38 * width + 30, 0.8 * statusHeight - 60, 0.38 * width + 40, 0.8 * statusHeight - 35);
+    c2.bezierCurveTo(0.38 * width + 50, 0.8 * statusHeight - 60, 0.38 * width + 80, 0.8 * statusHeight - 60, 0.38 * width + 55, 0.8 * statusHeight - 20);
+    linGrad = c2.createLinearGradient(0.38 * width, statusHeight - 20, 0.38 * width + 80, statusHeight - 20);
     linGrad.addColorStop(0, 'red');
     linGrad.addColorStop(1, 'darkred');
     c2.fillStyle = linGrad;
@@ -762,8 +761,8 @@ function renderStatus() {
     //Show level properties
     c2.fillStyle = 'white';
     c2.font = width / 75 + 'px monospace';
-    c2.fillText(`speed: ${level[currentLevel - 1].speed}px/frame, shootSpace: ${(level[currentLevel - 1].shootSpace * 100).toFixed(1)}%, shootShip: ${(level[currentLevel - 1].shootShip * 100).toFixed(1)}%,`, 0.57 * width, 0.35 * statusHeight);
-    c2.fillText(`shootMega: ${(level[currentLevel - 1].shootMega * 100).toFixed(1)}%, targetDistance: ${level[currentLevel - 1].targetDistance}px, moveDown: ${(level[currentLevel - 1].moveDown * 100).toFixed(1)}%.`, 0.57 * width, 0.75 * statusHeight);
+    c2.fillText(`speed: ${level[currentLevel - 1].speed}px/frame, shootSpace: ${(level[currentLevel - 1].shootSpace * 100).toFixed(1)}%, shootShip: ${(level[currentLevel - 1].shootShip * 100).toFixed(1)}%,`, 0.52 * width, 0.35 * statusHeight);
+    c2.fillText(`shootMega: ${(level[currentLevel - 1].shootMega * 100).toFixed(1)}%, targetDistance: ${level[currentLevel - 1].targetDistance}px, moveDown: ${(level[currentLevel - 1].moveDown * 100).toFixed(1)}%.`, 0.52 * width, 0.75 * statusHeight);
 }
 
 window.addEventListener('keydown', keyDown);
