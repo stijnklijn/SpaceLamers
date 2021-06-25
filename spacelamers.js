@@ -64,7 +64,7 @@ function startGame() {
         
     //Generate initial title stars
     let titleStars = [];
-    for (let i = 100; i < 700; i ++ ) {
+    for (let i = 50; i < 700; i ++ ) {
         let r = i;
         let theta = Math.random() * 2 * Math.PI;
         titleStars.push({r: r, theta: theta});    
@@ -78,7 +78,7 @@ function startGame() {
 
         //Clear the canvas and create new star
         c.clearRect(0, 0, width, height);
-        let r = 100;
+        let r = 50;
         let theta = Math.random() * 2 * Math.PI
         titleStars.push({r: r, theta: theta});
 
@@ -96,25 +96,28 @@ function startGame() {
          titleStars = titleStars.filter(star => star.r < width);
 
          //Render title
-         c.font = 'bold 200px monospace';
-         let linGrad = c.createLinearGradient(100, 200, 1000, 500);
+         c.font = 'bold ' + width / 8 + 'px monospace';
+         let linGrad = c.createLinearGradient(0, 0, width, height);
          linGrad.addColorStop(0, 'grey');
-         linGrad.addColorStop(1, 'white');
+         linGrad.addColorStop(1, 'yellow');
          c.fillStyle = linGrad;
-         c.fillText('SPACE LAMERS', 100, 200);
+         const letters = ' SPACE LAMERS ';
+         for (let i = 0; i < letters.length; i++) {
+             c.fillText(letters[i], width / letters.length * i, height / 3.5);
+         }
 
          //Render info text
          c.fillStyle = 'black';
-         c.fillRect(width / 4, 250, width /2, 250);
+         c.fillRect(width / 4, height / 2.5 , width /2, height / 3);
          c.strokeStyle = 'white';
-         c.strokeRect(width / 4, 250, width /2, 250);
+         c.strokeRect(width / 4, height / 2.5 , width /2, height / 3);
          c.fillStyle = 'white';
-         c.font = '30px monospace';
-         c.fillText('Controls', 400, 300);
-         c.fillText('Arrow keys: move', 400, 350);
-         c.fillText('Space: fire bullet', 400, 400);
-         c.fillText('Ctrl: fire laser (level 5 and higher)', 400, 450);
-         c.fillText('Hit enter to continue', 540, 600);
+         c.font = width / 50 + 'px monospace';
+         c.fillText('Controls', 0.27 * width, 0.47 * height);
+         c.fillText('Arrow keys: move', 0.27 * width, 0.54 * height);
+         c.fillText('Space: fire bullet',0.27 *  width, 0.61 * height);
+         c.fillText('Ctrl: fire laser (level 5 and higher)', 0.27 * width, 0.68 * height);
+         c.fillText('Hit enter to continue', 0.38 * width, 0.85 * height);
 
          animation = requestAnimationFrame(renderStars);
     }
@@ -142,12 +145,10 @@ function nextLevel(e) {
     c.fillStyle = 'black';
     c.fillRect(0, 0, width, height);
     c.fillStyle = 'white';
-    c.strokeStyle = 'white'
-    c.font = 'bold 100px monospace';
-    c.strokeRect(525, height / 2 - 125, 500, 300)
-    c.fillText('Level ' + currentLevel, 575, height / 2);
-    c.font = 'bold 40px monospace';
-    c.fillText('Hit enter to continue', 540, height / 2 + 100  );
+    c.font = 'bold ' + width / 10 + 'px monospace';
+    c.fillText('Level ' + currentLevel, 0.30 * width, height / 2);
+    c.font = 'bold ' + width / 50 + 'px monospace';
+    c.fillText('Hit enter to continue', 0.375 * width, 0.7 * height);
     window.addEventListener('keydown', initializeLevel);
 }
 
@@ -662,21 +663,21 @@ function gameOver(win) {
     clearInterval(ship.ammoInterval);
     c.fillStyle = 'white'
     c.strokeStyle = 'white'
-    c.strokeRect(50, height / 2 - 225, 1400, 400)
+    c.strokeRect(0.05 * width, 0.20 * height, 0.9 * width, 0.6 * height)
     
     if (win) {
-        c.font = 'bold 150px monospace';
-        c.fillText('GAME COMPLETED', 175, height / 2);
+        c.font = 'bold ' + width / 10 + 'px monospace';
+        c.fillText('GAME COMPLETED', 0.12 * width, height / 2);
     }
 
     else {
-        c.font = 'bold 200px monospace';
-        c.fillText('GAME OVER', 250, height / 2);
+        c.font = 'bold '+ width / 7.5 + 'px monospace';
+        c.fillText('GAME OVER', 0.16 * width, height / 2);
     
     }
     
-    c.font = 'bold 40px monospace';
-    c.fillText('Hit enter to play again', 500, height / 2 + 100  );
+    c.font = 'bold ' + width / 50 + 'px monospace';
+    c.fillText('Hit enter to play again', 0.37 * width, 0.7 * height);
     ship.lives = 0;
     ship.ammo = 10;
     currentLevel = 0;
@@ -760,9 +761,9 @@ function renderStatus() {
 
     //Show level properties
     c2.fillStyle = 'white';
-    c2.font = '20px monospace';
-    c2.fillText(`speed: ${level[currentLevel - 1].speed}px/frame, shootSpace: ${(level[currentLevel - 1].shootSpace * 100).toFixed(1)}%, shootShip: ${(level[currentLevel - 1].shootShip * 100).toFixed(1)}%, shootMega: ${(level[currentLevel - 1].shootMega * 100).toFixed(1)}%, targetDistance: ${level[currentLevel - 1].targetDistance}px,`, 475, 25);
-    c2.fillText(`moveDown: ${(level[currentLevel - 1].moveDown * 100).toFixed(1)}%.`, 475, 50);
+    c2.font = width / 75 + 'px monospace';
+    c2.fillText(`speed: ${level[currentLevel - 1].speed}px/frame, shootSpace: ${(level[currentLevel - 1].shootSpace * 100).toFixed(1)}%, shootShip: ${(level[currentLevel - 1].shootShip * 100).toFixed(1)}%,`, 0.57 * width, 0.35 * statusHeight);
+    c2.fillText(`shootMega: ${(level[currentLevel - 1].shootMega * 100).toFixed(1)}%, targetDistance: ${level[currentLevel - 1].targetDistance}px, moveDown: ${(level[currentLevel - 1].moveDown * 100).toFixed(1)}%.`, 0.57 * width, 0.75 * statusHeight);
 }
 
 window.addEventListener('keydown', keyDown);
