@@ -11,6 +11,9 @@ const c2 = canvas.getContext('2d');
 canvas.setAttribute('width', width);
 canvas.setAttribute('height', statusHeight);
 
+//Load audio files
+const levelMusic = new Audio('./spacelamers.wav');
+
 /*
 Difficulty variables for each level. Number of enemies, number of lives per enemy, enemy speed in pixels per frame,
 and chances per frame of enemy shooting space (when ship not underneath), shooting at ship directly (when ship underneath),
@@ -176,6 +179,8 @@ function initializeLevel(e) {
                 lives: level[currentLevel - 1].enemyLives
             })
         }
+        levelMusic.loop = true;
+        levelMusic.play();
         renderStatus();
         render();
     }
@@ -261,6 +266,7 @@ function checkHits() {
     //If all enemies are dead, proceed to next level
     if (enemies.every(enemy => !enemy.active)) {
         play = false;
+        levelMusic.pause();
         setTimeout(() => {
             if (currentLevel < 7) {
                 nextLevel();
